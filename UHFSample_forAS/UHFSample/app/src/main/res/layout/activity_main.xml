@@ -1,25 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity" >
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".MainActivity">
 
+    <!-- Header -->
     <TextView
-        android:id="@+id/textView1"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="40dp"
-        android:layout_marginBottom="40dp"
-        android:text="@string/hello_world" />
-    <Button
-        android:id="@+id/button1"
-        android:layout_width="wrap_content"
+        android:text="CipherLab RS38 - RFID Scanner"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#1976D2"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Service Connection Status -->
+    <TextView
+        android:id="@+id/tv_service_status"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="40dp"
-        android:layout_marginBottom="40dp"
-        android:text="ScanSetting" />
+        android:text="RFID Service: Connecting..."
+        android:textSize="13sp"
+        android:textColor="#666666"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Server Configuration Section -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="FastAPI Server Endpoint:"
+        android:textStyle="bold"
+        android:textSize="14sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="12dp">
+
+        <EditText
+            android:id="@+id/edt_server_url"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="http://127.0.0.1:8000/post_fixed_rfid"
+            android:inputType="textUri"
+            android:textSize="13sp"
+            android:maxLines="1" />
+
+        <Button
+            android:id="@+id/btn_save_url"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Scanned Tag Information Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="#EEEEEE"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Last Scanned Tag"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="#333333"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tv_epc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="EPC: (Press trigger to scan)"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="#D32F2F"
+            android:fontFamily="monospace" />
+
+        <TextView
+            android:id="@+id/tv_tid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="TID: -"
+            android:textSize="13sp"
+            android:textColor="#555555"
+            android:fontFamily="monospace" />
+
+        <TextView
+            android:id="@+id/tv_rssi"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="RSSI: - dBm"
+            android:textSize="13sp"
+            android:textColor="#555555" />
+    </LinearLayout>
+
+    <!-- API Response Status -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="10dp"
+        android:background="#E8F5E9"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:id="@+id/tv_api_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="API Status: Idle (Ready)"
+            android:textSize="13sp"
+            android:textColor="#2E7D32"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+
+        <Button
+            android:id="@+id/btn_trigger_scan"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Soft Scan Trigger"
+            android:textSize="13sp"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btn_clear_log"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Clear Log"
+            android:textSize="13sp"
+            android:layout_marginStart="4dp" />
+    </LinearLayout>
+
+    <!-- Activity Log Header -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Scan &amp; API Transmission Log:"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <!-- Scrollable Log Output -->
+    <ScrollView
+        android:id="@+id/scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#FAFAFA"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/tv_log"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Log initialized.\n"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:textColor="#424242" />
+    </ScrollView>
 
 </LinearLayout>
