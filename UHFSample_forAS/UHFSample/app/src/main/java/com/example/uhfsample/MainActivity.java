@@ -6,10 +6,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -44,13 +48,25 @@ public class MainActivity extends Activity {
     private static final String KEY_SERVER_URL = "server_url";
     private static final String DEFAULT_SERVER_URL = "http://127.0.0.1:8000/post_fixed_rfid";
 
+    // Known CipherLab Barcode Broadcast Actions
+    private static final String ACTION_CIPHERLAB_BARCODE_1 = "com.cipherlab.barcode.GeneralString.Intent_BARCODE_SERVICE_BROADCAST";
+    private static final String ACTION_CIPHERLAB_BARCODE_2 = "com.cipherlab.barcode.action.BARCODE_DATA";
+    private static final String ACTION_CIPHERLAB_BARCODE_3 = "action.reader.decode_data";
+    private static final String ACTION_CIPHERLAB_BARCODE_4 = "com.cipherlab.barcode.action.DECODE_DATA";
+    private static final String ACTION_CIPHERLAB_SOFTTRIGGER = "com.cipherlab.barcode.GeneralString.Intent_SOFTTRIGGER_DATA";
+    private static final String EXTRA_CIPHERLAB_SOFTTRIGGER_INT = "com.cipherlab.barcode.GeneralString.EXTRA_DATA_INT";
+
     // CipherLab RFID API Manager
     private RfidManager mRfidManager = null;
 
-    // Background Thread Pool for HTTP requests
+    // Background Thread Pool & Handlers
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+
+    // Buffering for keyboard-wedge barcode events
+    private final StringBuilder barcodeKeyBuffer = new StringBuilder();
+    private boolean isProcessingInput = false;
 
     // UI Views
     private TextView tvServiceStatus;
@@ -59,8 +75,12 @@ public class MainActivity extends Activity {
     private TextView tvEpc;
     private TextView tvTid;
     private TextView tvRssi;
+    private TextView tvQrData;
+    private TextView tvQrTime;
+    private EditText edtQrInput;
     private TextView tvApiStatus;
-    private Button btnTriggerScan;
+    private Button btnTriggerRfid;
+    private Button btnTriggerQr;
     private Button btnClearLog;
     private TextView tvLog;
     private ScrollView scrollView;
@@ -77,8 +97,12 @@ public class MainActivity extends Activity {
         tvEpc = findViewById(R.id.tv_epc);
         tvTid = findViewById(R.id.tv_tid);
         tvRssi = findViewById(R.id.tv_rssi);
+        tvQrData = findViewById(R.id.tv_qr_data);
+        tvQrTime = findViewById(R.id.tv_qr_time);
+        edtQrInput = findViewById(R.id.edt_qr_input);
         tvApiStatus = findViewById(R.id.tv_api_status);
-        btnTriggerScan = findViewById(R.id.btn_trigger_scan);
+        btnTriggerRfid = findViewById(R.id.btn_trigger_rfid);
+        btnTriggerQr = findViewById(R.id.btn_trigger_qr);
         btnClearLog = findViewById(R.id.btn_clear_log);
         tvLog = findViewById(R.id.tv_log);
         scrollView = findViewById(R.id.scroll_view);
@@ -98,33 +122,54 @@ public class MainActivity extends Activity {
             }
         });
 
-        // Soft Scan Trigger button
-        btnTriggerScan.setOnClickListener(v -> {
+        // Trigger RFID Scan button
+        btnTriggerRfid.setOnClickListener(v -> {
             if (mRfidManager != null) {
-                appendLog("[ACTION] Soft Scan Trigger activated");
+                appendLog("[ACTION] Triggering RFID scan...");
                 int result = mRfidManager.SoftScanTrigger(true);
                 if (result != ClResult.S_OK.ordinal()) {
                     String err = mRfidManager.GetLastError();
-                    appendLog("[ERROR] SoftScanTrigger failed: " + err);
+                    appendLog("[ERROR] RFID SoftScanTrigger failed: " + err);
                 }
             } else {
-                Toast.makeText(MainActivity.this, "RFID Service not initialized yet", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "RFID Service connecting...", Toast.LENGTH_SHORT).show();
             }
+        });
+
+        // Trigger QR / Barcode Scan button
+        btnTriggerQr.setOnClickListener(v -> {
+            appendLog("[ACTION] 2D Barcode scanner activated (aim at QR code)...");
+            edtQrInput.requestFocus();
+            triggerBarcodeScanner();
         });
 
         // Clear Log button
         btnClearLog.setOnClickListener(v -> tvLog.setText("Log cleared.\n"));
 
-        // Register CipherLab RFID Broadcast Receiver
+        // Setup QR code input text watcher (supports Keyboard Emulation mode seamlessly)
+        setupQrInputWatcher();
+
+        // Register CipherLab RFID & Barcode Broadcast Receivers
         IntentFilter filter = new IntentFilter();
+        // RFID actions
         filter.addAction(GeneralString.Intent_RFIDSERVICE_CONNECTED);
         filter.addAction(GeneralString.Intent_RFIDSERVICE_TAG_DATA);
-        registerReceiver(myDataReceiver, filter);
+        // 2D Barcode actions
+        filter.addAction(ACTION_CIPHERLAB_BARCODE_1);
+        filter.addAction(ACTION_CIPHERLAB_BARCODE_2);
+        filter.addAction(ACTION_CIPHERLAB_BARCODE_3);
+        filter.addAction(ACTION_CIPHERLAB_BARCODE_4);
+
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(myDataReceiver, filter, 2); // 2 = RECEIVER_EXPORTED
+        } else {
+            registerReceiver(myDataReceiver, filter);
+        }
 
         // Initialize RfidManager
-        tvServiceStatus.setText("RFID Service: Connecting...");
+        tvServiceStatus.setText("RFID: Connecting... | 2D Barcode: Ready");
         mRfidManager = RfidManager.InitInstance(this);
-        appendLog("[INIT] RfidManager initialized, awaiting service connection...");
+        appendLog("[INIT] Dual Scanner (RFID + QR) initialized.");
     }
 
     @Override
@@ -145,30 +190,83 @@ public class MainActivity extends Activity {
     }
 
     /**
+     * Sets up TextWatcher on edtQrInput. When the 2D imager outputs characters (keyboard wedge),
+     * this captures the QR code instantly, sends it, and clears the input box for the next scan.
+     */
+    private void setupQrInputWatcher() {
+        final Runnable processInputRunnable = () -> {
+            if (isProcessingInput) return;
+            String text = edtQrInput.getText().toString().trim();
+            if (!text.isEmpty()) {
+                isProcessingInput = true;
+                edtQrInput.setText("");
+                handleQrCodeScanned(text, "HardwareScan");
+                isProcessingInput = false;
+            }
+        };
+
+        edtQrInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (isProcessingInput) return;
+                mainHandler.removeCallbacks(processInputRunnable);
+                // When scanner inputs characters, debounce 120ms to allow all chars to arrive
+                if (s.length() > 0) {
+                    mainHandler.postDelayed(processInputRunnable, 120);
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        // Also trigger immediately if scanner sends Enter key
+        edtQrInput.setOnEditorActionListener((v, actionId, event) -> {
+            mainHandler.removeCallbacks(processInputRunnable);
+            processInputRunnable.run();
+            return true;
+        });
+    }
+
+    /**
+     * Triggers the CipherLab 2D Barcode imager via Broadcast Intent.
+     */
+    private void triggerBarcodeScanner() {
+        try {
+            Intent triggerIntent = new Intent(ACTION_CIPHERLAB_SOFTTRIGGER);
+            triggerIntent.putExtra(EXTRA_CIPHERLAB_SOFTTRIGGER_INT, 1);
+            sendBroadcast(triggerIntent);
+
+            Intent altIntent = new Intent("action.reader.trigger");
+            altIntent.putExtra("trigger", true);
+            sendBroadcast(altIntent);
+        } catch (Exception e) {
+            Log.e(TAG, "Error triggering barcode scanner", e);
+        }
+    }
+
+    /**
      * Configures reader parameters suited for CipherLab RS38 (E310 Module).
      */
     private void setupRfidParameters() {
         if (mRfidManager == null) return;
 
-        // Set Scan Mode to Single tag or Continuous
         int reScan = mRfidManager.SetScanMode(ScanMode.Single);
         if (reScan != ClResult.S_OK.ordinal()) {
             Log.e(TAG, "SetScanMode failed: " + mRfidManager.GetLastError());
-        } else {
-            Log.i(TAG, "SetScanMode(Single) succeeded");
         }
 
-        // Set RFID Mode to Inventory
         int reMode = mRfidManager.SetRFIDMode(RFIDMode.Inventory);
         if (reMode != ClResult.S_OK.ordinal()) {
             Log.e(TAG, "SetRFIDMode failed: " + mRfidManager.GetLastError());
-        } else {
-            Log.i(TAG, "SetRFIDMode(Inventory) succeeded");
         }
     }
 
     /**
-     * BroadcastReceiver for CipherLab RFID events
+     * BroadcastReceiver for CipherLab RFID & 2D Barcode/QR events
      */
     private final BroadcastReceiver myDataReceiver = new BroadcastReceiver() {
         @Override
@@ -176,73 +274,170 @@ public class MainActivity extends Activity {
             String action = intent.getAction();
             if (action == null) return;
 
-            // 1. Connection established with RfidService
+            // 1. RFID SERVICE CONNECTED
             if (action.equals(GeneralString.Intent_RFIDSERVICE_CONNECTED)) {
                 String pkgName = intent.getStringExtra("PackageName");
                 String srvVer = mRfidManager != null ? mRfidManager.GetServiceVersion() : "N/A";
-                String apiVer = mRfidManager != null ? mRfidManager.GetAPIVersion() : "N/A";
 
-                tvServiceStatus.setText("RFID Service: Connected (Srv: " + srvVer + " | API: " + apiVer + ")");
-                tvServiceStatus.setTextColor(0xFF2E7D32); // Dark Green
-                appendLog("[CONNECTED] Service bound (" + pkgName + ", Srv: " + srvVer + ", API: " + apiVer + ")");
-
-                // Configure reader settings for RS38
+                tvServiceStatus.setText("RFID: Connected (v" + srvVer + ") | 2D Barcode: Ready");
+                tvServiceStatus.setTextColor(0xFF2E7D32);
+                appendLog("[CONNECTED] RFID Service connected (" + pkgName + ", v" + srvVer + ")");
                 setupRfidParameters();
             }
 
-            // 2. RFID Tag Data Received
+            // 2. RFID TAG SCANNED
             else if (action.equals(GeneralString.Intent_RFIDSERVICE_TAG_DATA)) {
-                int type = intent.getIntExtra(GeneralString.EXTRA_DATA_TYPE, -1);
-                int response = intent.getIntExtra(GeneralString.EXTRA_RESPONSE, -1);
                 double rssi = intent.getDoubleExtra(GeneralString.EXTRA_DATA_RSSI, 0.0);
                 String pc = intent.getStringExtra(GeneralString.EXTRA_PC);
                 String epc = intent.getStringExtra(GeneralString.EXTRA_EPC);
                 String tid = intent.getStringExtra(GeneralString.EXTRA_TID);
                 String readData = intent.getStringExtra(GeneralString.EXTRA_ReadData);
 
-                Log.d(TAG, "Tag detected: EPC=" + epc + ", TID=" + tid + ", RSSI=" + rssi);
+                handleRfidScanned(epc, tid, rssi, pc, readData);
+            }
 
-                // Update UI on screen
-                tvEpc.setText("EPC: " + (epc != null && !epc.isEmpty() ? epc : "(Empty EPC)"));
-                tvTid.setText("TID: " + (tid != null && !tid.isEmpty() ? tid : "-"));
-                tvRssi.setText(String.format(Locale.US, "RSSI: %.1f dBm", rssi));
-
-                appendLog(String.format(Locale.US, "[SCAN] EPC: %s (RSSI: %.1f dBm)", epc, rssi));
-
-                // Send to FastAPI
-                String targetUrl = edtServerUrl.getText().toString().trim();
-                if (targetUrl.isEmpty()) {
-                    targetUrl = DEFAULT_SERVER_URL;
+            // 3. 2D BARCODE / QR CODE SCANNED (Intent)
+            else if (action.equals(ACTION_CIPHERLAB_BARCODE_1) || 
+                     action.equals(ACTION_CIPHERLAB_BARCODE_2) || 
+                     action.equals(ACTION_CIPHERLAB_BARCODE_3) ||
+                     action.equals(ACTION_CIPHERLAB_BARCODE_4)) {
+                
+                String qrData = extractBarcodeData(intent);
+                if (qrData != null && !qrData.isEmpty()) {
+                    handleQrCodeScanned(qrData, "Intent");
                 }
-
-                postScanToFastAPI(targetUrl, epc, tid, rssi, pc, readData);
             }
         }
     };
 
     /**
-     * Asynchronously sends the RFID scan data to the specified FastAPI endpoint.
+     * Extracts barcode text from known CipherLab intent extras.
      */
-    private void postScanToFastAPI(String endpointUrl, String epc, String tid, double rssi, String pc, String readData) {
-        tvApiStatus.setText("API Status: Posting to " + endpointUrl + "...");
-        tvApiStatus.setTextColor(0xFF1976D2); // Blue
+    private String extractBarcodeData(Intent intent) {
+        String data = intent.getStringExtra("com.cipherlab.barcode.GeneralString.EXTRA_DATA_STRING");
+        if (data == null) data = intent.getStringExtra("data_string");
+        if (data == null) data = intent.getStringExtra("barcode_data");
+        if (data == null) data = intent.getStringExtra("data");
+        if (data == null) data = intent.getStringExtra("Barcode");
+        if (data == null) {
+            byte[] bytes = intent.getByteArrayExtra("data_byte");
+            if (bytes != null && bytes.length > 0) {
+                data = new String(bytes, StandardCharsets.UTF_8);
+            }
+        }
+        return data;
+    }
+
+    /**
+     * Global key event listener to capture QR codes even when no input box has focus.
+     */
+    private final Runnable flushBarcodeBufferRunnable = () -> {
+        if (barcodeKeyBuffer.length() > 0) {
+            String scanned = barcodeKeyBuffer.toString().trim();
+            barcodeKeyBuffer.setLength(0);
+            if (!scanned.isEmpty() && scanned.length() > 1) {
+                handleQrCodeScanned(scanned, "KeyCapture");
+            }
+        }
+    };
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            int keyCode = event.getKeyCode();
+
+            // Ignore navigation keys
+            if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_HOME) {
+                return super.dispatchKeyEvent(event);
+            }
+
+            // Hardware scan key or enter key finishes scan
+            if (keyCode == KeyEvent.KEYCODE_ENTER) {
+                mainHandler.removeCallbacks(flushBarcodeBufferRunnable);
+                mainHandler.post(flushBarcodeBufferRunnable);
+                return true;
+            }
+
+            char unicodeChar = (char) event.getUnicodeChar();
+            if (unicodeChar >= 32 && unicodeChar <= 126) {
+                barcodeKeyBuffer.append(unicodeChar);
+                mainHandler.removeCallbacks(flushBarcodeBufferRunnable);
+                // Debounce: if no character comes in next 100ms, process buffer
+                mainHandler.postDelayed(flushBarcodeBufferRunnable, 100);
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    /**
+     * Processes and uploads an RFID tag scan.
+     */
+    private void handleRfidScanned(String epc, String tid, double rssi, String pc, String readData) {
+        tvEpc.setText("EPC: " + (epc != null && !epc.isEmpty() ? epc : "(Empty EPC)"));
+        tvTid.setText("TID: " + (tid != null && !tid.isEmpty() ? tid : "-"));
+        tvRssi.setText(String.format(Locale.US, "RSSI: %.1f dBm", rssi));
+
+        appendLog(String.format(Locale.US, "[RFID SCAN] EPC: %s (RSSI: %.1f dBm)", epc, rssi));
+
+        try {
+            JSONObject payload = new JSONObject();
+            payload.put("scan_type", "RFID");
+            payload.put("epc", epc != null ? epc : "");
+            payload.put("tid", tid != null ? tid : "");
+            payload.put("rssi", rssi);
+            payload.put("pc", pc != null ? pc : "");
+            payload.put("read_data", readData != null ? readData : "");
+            payload.put("device_model", "RS38");
+            payload.put("timestamp", System.currentTimeMillis());
+
+            postJsonToFastAPI(payload, "RFID: " + epc);
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating RFID payload", e);
+        }
+    }
+
+    /**
+     * Processes and uploads a 2D QR code scan.
+     */
+    private void handleQrCodeScanned(String qrContent, String source) {
+        String timestamp = timeFormat.format(new Date());
+        tvQrData.setText("Data: " + qrContent);
+        tvQrTime.setText("Time: " + timestamp + " (via " + source + ")");
+
+        appendLog("[QR SCAN] " + qrContent);
+
+        try {
+            JSONObject payload = new JSONObject();
+            payload.put("scan_type", "QR");
+            payload.put("data", qrContent);
+            payload.put("device_model", "RS38");
+            payload.put("timestamp", System.currentTimeMillis());
+
+            postJsonToFastAPI(payload, "QR: " + qrContent);
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating QR payload", e);
+        }
+    }
+
+    /**
+     * Posts a JSON payload asynchronously to the configured FastAPI endpoint.
+     */
+    private void postJsonToFastAPI(JSONObject payload, String logSummary) {
+        String endpointUrl = edtServerUrl.getText().toString().trim();
+        if (endpointUrl.isEmpty()) {
+            endpointUrl = DEFAULT_SERVER_URL;
+        }
+
+        final String targetUrl = endpointUrl;
+        tvApiStatus.setText("API Status: Posting " + logSummary + "...");
+        tvApiStatus.setTextColor(0xFF1976D2);
 
         networkExecutor.execute(() -> {
             HttpURLConnection connection = null;
             try {
-                // Construct JSON payload
-                JSONObject payload = new JSONObject();
-                payload.put("epc", epc != null ? epc : "");
-                payload.put("tid", tid != null ? tid : "");
-                payload.put("rssi", rssi);
-                payload.put("pc", pc != null ? pc : "");
-                payload.put("read_data", readData != null ? readData : "");
-                payload.put("device_model", "RS38");
-                payload.put("timestamp", System.currentTimeMillis());
-
                 byte[] postData = payload.toString().getBytes(StandardCharsets.UTF_8);
 
-                URL url = new URL(endpointUrl);
+                URL url = new URL(targetUrl);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -252,7 +447,6 @@ public class MainActivity extends Activity {
                 connection.setDoOutput(true);
                 connection.setFixedLengthStreamingMode(postData.length);
 
-                // Write payload
                 try (OutputStream os = connection.getOutputStream()) {
                     os.write(postData);
                     os.flush();
@@ -269,24 +463,21 @@ public class MainActivity extends Activity {
                 mainHandler.post(() -> {
                     if (finalStatusCode >= 200 && finalStatusCode < 300) {
                         tvApiStatus.setText("API Status: [HTTP " + finalStatusCode + " SUCCESS] " + finalResponse);
-                        tvApiStatus.setTextColor(0xFF2E7D32); // Green
-                        appendLog("[HTTP " + finalStatusCode + " OK] Server responded: " + finalResponse);
+                        tvApiStatus.setTextColor(0xFF2E7D32);
+                        appendLog("[HTTP " + finalStatusCode + " OK] " + logSummary);
                     } else {
                         tvApiStatus.setText("API Status: [HTTP " + finalStatusCode + " ERROR] " + finalResponse);
-                        tvApiStatus.setTextColor(0xFFD32F2F); // Red
-                        appendLog("[HTTP " + finalStatusCode + " FAIL] Response: " + finalResponse);
+                        tvApiStatus.setTextColor(0xFFD32F2F);
+                        appendLog("[HTTP " + finalStatusCode + " FAIL] " + logSummary + " -> " + finalResponse);
                     }
                 });
 
             } catch (Exception e) {
-                Log.e(TAG, "Failed to send scan to FastAPI", e);
                 final String errorMessage = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
                 mainHandler.post(() -> {
                     tvApiStatus.setText("API Error: " + errorMessage);
-                    tvApiStatus.setTextColor(0xFFD32F2F); // Red
+                    tvApiStatus.setTextColor(0xFFD32F2F);
                     appendLog("[NET ERROR] " + errorMessage);
-                    appendLog("  * Tip: If FastAPI is running on PC via USB, run: adb reverse tcp:8000 tcp:8000");
-                    appendLog("  * Tip: If over Wi-Fi, change 127.0.0.1 to your PC's IP address (e.g. 192.168.x.x)");
                 });
             } finally {
                 if (connection != null) {
@@ -296,9 +487,6 @@ public class MainActivity extends Activity {
         });
     }
 
-    /**
-     * Helper to read InputStream into String
-     */
     private String readStream(InputStream is) {
         if (is == null) return "";
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
@@ -313,15 +501,10 @@ public class MainActivity extends Activity {
         }
     }
 
-    /**
-     * Appends a line with timestamp to the on-screen activity log.
-     */
     private void appendLog(String message) {
         String timestamp = timeFormat.format(new Date());
         String logLine = "[" + timestamp + "] " + message + "\n";
         tvLog.append(logLine);
-
-        // Auto scroll to bottom
         scrollView.post(() -> scrollView.fullScroll(View.FOCUS_DOWN));
     }
 }
