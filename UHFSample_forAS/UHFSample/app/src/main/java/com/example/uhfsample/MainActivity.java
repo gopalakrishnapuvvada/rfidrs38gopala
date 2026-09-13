@@ -46,7 +46,9 @@ public class MainActivity extends Activity {
     private static final String TAG = "RFID_RS38";
     private static final String PREFS_NAME = "rfid_prefs";
     private static final String KEY_SERVER_URL = "server_url";
-    private static final String DEFAULT_SERVER_URL = "http://127.0.0.1:8000/post_fixed_rfid";
+    private static final String DEFAULT_SERVER_URL = "http://192.168.88.9:8000/post_fixed_rfid";
+    private static final String KEY_DEVICE_ID = "device_id";
+    private static final String DEFAULT_DEVICE_ID = "dev-cpr-01";
 
     // CipherLab RS38 Native 2D Barcode / QR Actions (from system ReaderService)
     private static final String ACTION_CIPHERLAB_PASS_DATA = "com.cipherlab.barcodebaseapi.PASS_DATA_2_APP";
@@ -83,6 +85,7 @@ public class MainActivity extends Activity {
     // UI Views
     private TextView tvServiceStatus;
     private EditText edtServerUrl;
+    private EditText edtDeviceId;
     private Button btnSaveUrl;
     private TextView tvEpc;
     private TextView tvTid;
@@ -117,6 +120,7 @@ public class MainActivity extends Activity {
         // Bind Views
         tvServiceStatus = findViewById(R.id.tv_service_status);
         edtServerUrl = findViewById(R.id.edt_server_url);
+        edtDeviceId = findViewById(R.id.edt_device_id);
         btnSaveUrl = findViewById(R.id.btn_save_url);
         tvEpc = findViewById(R.id.tv_epc);
         tvTid = findViewById(R.id.tv_tid);
@@ -131,19 +135,28 @@ public class MainActivity extends Activity {
         tvLog = findViewById(R.id.tv_log);
         scrollView = findViewById(R.id.scroll_view);
 
-        // Load saved server URL or default
+        // Load saved server URL and Device ID
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         String savedUrl = prefs.getString(KEY_SERVER_URL, DEFAULT_SERVER_URL);
         edtServerUrl.setText(savedUrl);
+        String savedDeviceId = prefs.getString(KEY_DEVICE_ID, DEFAULT_DEVICE_ID);
+        edtDeviceId.setText(savedDeviceId);
 
-        // Save URL button listener
+        // Save URL and Device ID button listener
         btnSaveUrl.setOnClickListener(v -> {
             String newUrl = edtServerUrl.getText().toString().trim();
+            String newDeviceId = edtDeviceId.getText().toString().trim();
+            if (newDeviceId.isEmpty()) newDeviceId = DEFAULT_DEVICE_ID;
+
+            SharedPreferences.Editor editor = prefs.edit();
             if (!newUrl.isEmpty()) {
-                prefs.edit().putString(KEY_SERVER_URL, newUrl).apply();
-                Toast.makeText(MainActivity.this, "Server URL saved!", Toast.LENGTH_SHORT).show();
-                appendLog("[CONFIG] Saved endpoint: " + newUrl);
+                editor.putString(KEY_SERVER_URL, newUrl);
             }
+            editor.putString(KEY_DEVICE_ID, newDeviceId);
+            editor.apply();
+
+            Toast.makeText(MainActivity.this, "Settings saved!", Toast.LENGTH_SHORT).show();
+            appendLog("[CONFIG] Saved endpoint: " + newUrl + " | Device ID: " + newDeviceId);
         });
 
         // Trigger RFID Scan button
@@ -468,6 +481,18 @@ public class MainActivity extends Activity {
     }
 
     /**
+     * Gets the configured Device ID from UI or SharedPreferences
+     */
+    private String getDeviceId() {
+        if (edtDeviceId != null) {
+            String id = edtDeviceId.getText().toString().trim();
+            if (!id.isEmpty()) return id;
+        }
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        return prefs.getString(KEY_DEVICE_ID, DEFAULT_DEVICE_ID);
+    }
+
+    /**
      * Processes and uploads an RFID tag scan.
      */
     private void handleRfidScanned(String epc, String tid, double rssi, String pc, String readData) {
@@ -490,15 +515,10 @@ public class MainActivity extends Activity {
         appendLog(String.format(Locale.US, "[RFID SCAN] EPC: %s (RSSI: %.1f dBm)", epc, rssi));
 
         try {
+            String deviceId = getDeviceId();
             JSONObject payload = new JSONObject();
-            payload.put("scan_type", "RFID");
-            payload.put("epc", epc);
-            payload.put("tid", tid != null ? tid : "");
-            payload.put("rssi", rssi);
-            payload.put("pc", pc != null ? pc : "");
-            payload.put("read_data", readData != null ? readData : "");
-            payload.put("device_model", "RS38");
-            payload.put("timestamp", now);
+            payload.put("rfidUniqueId", epc);
+            payload.put("deviceId", deviceId);
 
             postJsonToFastAPI(payload, "RFID: " + epc);
         } catch (Exception e) {
@@ -507,7 +527,11 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * Processes and uploads a 2D QR code scan.
+     * Processes and uploads a 2D QR code scan with business logic classification:
+     * - Starts with "WFG" -> rfidUniqueId
+     * - Starts with "100" or "WAK-MAT-" / "MAT-" -> materialCode
+     * - Starts with "200" or "400" or "WO-" -> workOrderNo
+     * - Default -> data
      */
     private void handleQrCodeScanned(String qrContent, String source) {
         if (qrContent == null || qrContent.trim().isEmpty()) return;
@@ -528,21 +552,39 @@ public class MainActivity extends Activity {
         lastQrTime = now;
 
         String timestamp = timeFormat.format(new Date());
-        tvQrData.setText("Data: " + qrContent);
+
+        // Classification based on production rules
+        String deviceId = getDeviceId();
+        String classificationType;
+        String payloadKey;
+
+        if (qrContent.startsWith("WFG")) {
+            classificationType = "RFID Tag";
+            payloadKey = "rfidUniqueId";
+        } else if (qrContent.startsWith("100") || qrContent.toUpperCase().startsWith("WAK-MAT-") || qrContent.toUpperCase().startsWith("MAT-")) {
+            classificationType = "Material Code";
+            payloadKey = "materialCode";
+        } else if (qrContent.startsWith("200") || qrContent.startsWith("400") || qrContent.toUpperCase().startsWith("WO-")) {
+            classificationType = "Work Order No";
+            payloadKey = "workOrderNo";
+        } else {
+            classificationType = "QR/Barcode";
+            payloadKey = "data";
+        }
+
+        tvQrData.setText(classificationType + ": " + qrContent);
         tvQrTime.setText("Time: " + timestamp + " (via " + source + ")");
 
-        appendLog("[QR SCAN] " + qrContent);
+        appendLog("[" + classificationType + "] " + qrContent);
 
         try {
             JSONObject payload = new JSONObject();
-            payload.put("scan_type", "QR");
-            payload.put("data", qrContent);
-            payload.put("device_model", "RS38");
-            payload.put("timestamp", now);
+            payload.put(payloadKey, qrContent);
+            payload.put("deviceId", deviceId);
 
-            postJsonToFastAPI(payload, "QR: " + qrContent);
+            postJsonToFastAPI(payload, classificationType + ": " + qrContent);
         } catch (Exception e) {
-            Log.e(TAG, "Error creating QR payload", e);
+            Log.e(TAG, "Error creating payload for " + classificationType, e);
         }
     }
 
@@ -562,6 +604,7 @@ public class MainActivity extends Activity {
         networkExecutor.execute(() -> {
             HttpURLConnection connection = null;
             try {
+                Log.i(TAG, "Sending JSON to " + targetUrl + ": " + payload.toString());
                 byte[] postData = payload.toString().getBytes(StandardCharsets.UTF_8);
 
                 URL url = new URL(targetUrl);
@@ -629,6 +672,7 @@ public class MainActivity extends Activity {
     }
 
     private void appendLog(String message) {
+        Log.i(TAG, message);
         String timestamp = timeFormat.format(new Date());
         String logLine = "[" + timestamp + "] " + message + "\n";
         tvLog.append(logLine);

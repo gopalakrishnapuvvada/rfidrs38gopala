@@ -23,7 +23,9 @@ public class BarcodeReceiver extends BroadcastReceiver {
     private static final String TAG = "BarcodeReceiver";
     private static final String PREFS_NAME = "rfid_prefs";
     private static final String KEY_SERVER_URL = "server_url";
-    private static final String DEFAULT_SERVER_URL = "http://127.0.0.1:8000/post_fixed_rfid";
+    private static final String DEFAULT_SERVER_URL = "http://192.168.88.9:8000/post_fixed_rfid";
+    private static final String KEY_DEVICE_ID = "device_id";
+    private static final String DEFAULT_DEVICE_ID = "dev-cpr-01";
 
     // Static debounce fields for background deduplication
     private static String sLastBarcode = "";
@@ -47,10 +49,13 @@ public class BarcodeReceiver extends BroadcastReceiver {
             barcode = barcode.substring(3);
         }
 
-        // 1. If MainActivity is alive, MainActivity's dynamic receiver handles it directly.
-        // We return here to avoid duplicate HTTP posts!
+        // 1. If MainActivity is alive, delegate to MainActivity's handler
+        // which updates the UI, performs deduplication, and posts to FastAPI.
         MainActivity mainActivity = MainActivity.getInstance();
         if (mainActivity != null) {
+            String codeType = intent.getStringExtra("Decoder_CodeType_String");
+            String label = (codeType != null && !codeType.isEmpty()) ? codeType : "QR/Barcode";
+            mainActivity.onExternalBarcodeReceived(barcode, label);
             return;
         }
 
@@ -69,19 +74,28 @@ public class BarcodeReceiver extends BroadcastReceiver {
         // 3. Post directly to FastAPI when running in background
         final PendingResult pendingResult = goAsync();
         final String finalBarcode = barcode;
-        final String finalLabel = label;
 
         new Thread(() -> {
             try {
                 SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
                 String serverUrl = prefs.getString(KEY_SERVER_URL, DEFAULT_SERVER_URL);
+                String deviceId = prefs.getString(KEY_DEVICE_ID, DEFAULT_DEVICE_ID);
+
+                // Classification based on production rules
+                String payloadKey;
+                if (finalBarcode.startsWith("WFG")) {
+                    payloadKey = "rfidUniqueId";
+                } else if (finalBarcode.startsWith("100") || finalBarcode.toUpperCase().startsWith("WAK-MAT-") || finalBarcode.toUpperCase().startsWith("MAT-")) {
+                    payloadKey = "materialCode";
+                } else if (finalBarcode.startsWith("200") || finalBarcode.startsWith("400") || finalBarcode.toUpperCase().startsWith("WO-")) {
+                    payloadKey = "workOrderNo";
+                } else {
+                    payloadKey = "data";
+                }
 
                 JSONObject payload = new JSONObject();
-                payload.put("scan_type", "QR");
-                payload.put("data", finalBarcode);
-                payload.put("code_type", finalLabel);
-                payload.put("device_model", "RS38");
-                payload.put("timestamp", System.currentTimeMillis());
+                payload.put(payloadKey, finalBarcode);
+                payload.put("deviceId", deviceId);
 
                 byte[] postData = payload.toString().getBytes(StandardCharsets.UTF_8);
 

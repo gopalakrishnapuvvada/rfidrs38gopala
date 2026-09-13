@@ -21,34 +21,41 @@ class RFIDRequestHandler(BaseHTTPRequestHandler):
 
             try:
                 payload = json.loads(post_data.decode("utf-8"))
-                scan_type = payload.get("scan_type", "UNKNOWN")
+                device_id = payload.get("deviceId", payload.get("device_model", "unknown-device"))
 
-                print("\n" + "="*55)
-                if scan_type == "QR":
-                    print("📱 [QR CODE / BARCODE SCANNED FROM RS38]")
-                    print(f"  • Content:      {payload.get('data')}")
-                    print(f"  • Device Model: {payload.get('device_model')}")
-                    print(f"  • Timestamp:    {payload.get('timestamp')}")
-                elif scan_type == "RFID":
-                    print("🏷️  [RFID TAG SCANNED FROM RS38]")
-                    print(f"  • EPC:          {payload.get('epc')}")
-                    print(f"  • TID:          {payload.get('tid')}")
-                    print(f"  • RSSI:         {payload.get('rssi')} dBm")
-                    print(f"  • Device Model: {payload.get('device_model')}")
-                    print(f"  • Timestamp:    {payload.get('timestamp')}")
+                print("\n" + "="*58)
+                if "rfidUniqueId" in payload:
+                    print(f"🏷️  [RFID UNIQUE ID RECEIVED FROM {device_id}]")
+                    print(f"  • RFID Tag ID: {payload.get('rfidUniqueId')}")
+                    print(f"  • Device ID:   {device_id}")
+                elif "materialCode" in payload:
+                    print(f"📦 [MATERIAL CODE SCANNED FROM {device_id}]")
+                    print(f"  • Material Code: {payload.get('materialCode')}")
+                    print(f"  • Device ID:     {device_id}")
+                elif "workOrderNo" in payload:
+                    print(f"📋 [WORK ORDER NO SCANNED FROM {device_id}]")
+                    print(f"  • Work Order No: {payload.get('workOrderNo')}")
+                    print(f"  • Device ID:     {device_id}")
+                elif payload.get("scan_type") == "QR" or "data" in payload:
+                    print(f"📱 [QR CODE / BARCODE SCANNED FROM {device_id}]")
+                    print(f"  • Content:       {payload.get('data')}")
+                    print(f"  • Device ID:     {device_id}")
+                elif payload.get("scan_type") == "RFID" or "epc" in payload:
+                    print(f"🏷️  [RFID TAG SCANNED FROM {device_id}]")
+                    print(f"  • EPC:           {payload.get('epc')}")
+                    print(f"  • Device ID:     {device_id}")
                 else:
-                    print(f"📦 [{scan_type} DATA RECEIVED FROM RS38]")
+                    print(f"📩 [DATA RECEIVED FROM {device_id}]")
                     print(f"  • Payload: {payload}")
-                print("="*55 + "\n")
+                print("="*58 + "\n")
 
                 # Send 200 OK JSON response
                 response = {
                     "status": "success",
-                    "scan_type": scan_type,
-                    "message": f"{scan_type} scan processed successfully",
-                    "received": payload.get("data") if scan_type == "QR" else payload.get("epc")
+                    "message": "Scan processed successfully",
+                    "data": payload
                 }
-                response_bytes = json.dumps(response).encode("utf-8")
+                response_bytes = json.dumps(response, indent=2).encode("utf-8")
 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
@@ -76,9 +83,10 @@ class RFIDRequestHandler(BaseHTTPRequestHandler):
 
 def run():
     server_address = ("0.0.0.0", PORT)
+    HTTPServer.allow_reuse_address = True
     httpd = HTTPServer(server_address, RFIDRequestHandler)
     print(f"🚀 Dual Scanner Test Server listening on http://0.0.0.0:{PORT}/post_fixed_rfid")
-    print(f"   Accepts both UHF RFID tags and 2D QR codes.")
+    print(f"   Accepts RFID, Material Codes, and Work Order numbers.")
     print("   Waiting for scans from CipherLab RS38...\n")
     try:
         httpd.serve_forever()
