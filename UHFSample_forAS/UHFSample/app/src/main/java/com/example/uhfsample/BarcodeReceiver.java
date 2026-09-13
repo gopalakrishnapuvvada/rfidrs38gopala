@@ -25,6 +25,10 @@ public class BarcodeReceiver extends BroadcastReceiver {
     private static final String KEY_SERVER_URL = "server_url";
     private static final String DEFAULT_SERVER_URL = "http://127.0.0.1:8000/post_fixed_rfid";
 
+    // Static debounce fields for background deduplication
+    private static String sLastBarcode = "";
+    private static long sLastBarcodeTime = 0;
+
     @Override
     public void onReceive(Context context, Intent intent) {
         if (intent == null) return;
@@ -38,17 +42,31 @@ public class BarcodeReceiver extends BroadcastReceiver {
         }
 
         barcode = barcode.trim();
-        String codeType = intent.getStringExtra("Decoder_CodeType_String");
-        String label = (codeType != null && !codeType.isEmpty()) ? codeType : "QR/Barcode";
+        // Strip AIM symbology prefix if present (e.g. "]Q1" for QR Code)
+        if (barcode.startsWith("]Q1") || barcode.startsWith("]Q2") || barcode.startsWith("]d2") || barcode.startsWith("]C1")) {
+            barcode = barcode.substring(3);
+        }
 
-        // 1. If MainActivity is alive, forward to it
+        // 1. If MainActivity is alive, MainActivity's dynamic receiver handles it directly.
+        // We return here to avoid duplicate HTTP posts!
         MainActivity mainActivity = MainActivity.getInstance();
         if (mainActivity != null) {
-            mainActivity.onExternalBarcodeReceived(barcode, label + " (Manifest)");
             return;
         }
 
-        // 2. Otherwise (Activity paused/stopped), post directly to FastAPI
+        // 2. Deduplication check for background scans
+        long now = System.currentTimeMillis();
+        if (barcode.equals(sLastBarcode) && (now - sLastBarcodeTime < 1000)) {
+            Log.d(TAG, "Duplicate background scan ignored: " + barcode);
+            return;
+        }
+        sLastBarcode = barcode;
+        sLastBarcodeTime = now;
+
+        String codeType = intent.getStringExtra("Decoder_CodeType_String");
+        String label = (codeType != null && !codeType.isEmpty()) ? codeType : "QR/Barcode";
+
+        // 3. Post directly to FastAPI when running in background
         final PendingResult pendingResult = goAsync();
         final String finalBarcode = barcode;
         final String finalLabel = label;

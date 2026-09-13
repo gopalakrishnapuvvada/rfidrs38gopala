@@ -73,6 +73,13 @@ public class MainActivity extends Activity {
     private final StringBuilder barcodeKeyBuffer = new StringBuilder();
     private boolean isProcessingInput = false;
 
+    // Deduplication / Debouncing to prevent duplicate scans
+    private String lastRfidEpc = "";
+    private long lastRfidTime = 0;
+    private String lastQrData = "";
+    private long lastQrTime = 0;
+    private static final long DEBOUNCE_MS = 1000; // Ignore duplicate scans within 1 second
+
     // UI Views
     private TextView tvServiceStatus;
     private EditText edtServerUrl;
@@ -464,7 +471,19 @@ public class MainActivity extends Activity {
      * Processes and uploads an RFID tag scan.
      */
     private void handleRfidScanned(String epc, String tid, double rssi, String pc, String readData) {
-        tvEpc.setText("EPC: " + (epc != null && !epc.isEmpty() ? epc : "(Empty EPC)"));
+        if (epc == null || epc.trim().isEmpty()) return;
+        epc = epc.trim();
+
+        // Deduplication: Ignore identical RFID tag scanned within 1 second
+        long now = System.currentTimeMillis();
+        if (epc.equals(lastRfidEpc) && (now - lastRfidTime < DEBOUNCE_MS)) {
+            Log.d(TAG, "Duplicate RFID scan ignored: " + epc);
+            return;
+        }
+        lastRfidEpc = epc;
+        lastRfidTime = now;
+
+        tvEpc.setText("EPC: " + epc);
         tvTid.setText("TID: " + (tid != null && !tid.isEmpty() ? tid : "-"));
         tvRssi.setText(String.format(Locale.US, "RSSI: %.1f dBm", rssi));
 
@@ -473,13 +492,13 @@ public class MainActivity extends Activity {
         try {
             JSONObject payload = new JSONObject();
             payload.put("scan_type", "RFID");
-            payload.put("epc", epc != null ? epc : "");
+            payload.put("epc", epc);
             payload.put("tid", tid != null ? tid : "");
             payload.put("rssi", rssi);
             payload.put("pc", pc != null ? pc : "");
             payload.put("read_data", readData != null ? readData : "");
             payload.put("device_model", "RS38");
-            payload.put("timestamp", System.currentTimeMillis());
+            payload.put("timestamp", now);
 
             postJsonToFastAPI(payload, "RFID: " + epc);
         } catch (Exception e) {
@@ -491,6 +510,23 @@ public class MainActivity extends Activity {
      * Processes and uploads a 2D QR code scan.
      */
     private void handleQrCodeScanned(String qrContent, String source) {
+        if (qrContent == null || qrContent.trim().isEmpty()) return;
+        qrContent = qrContent.trim();
+
+        // Strip AIM symbology identifier prefix if present (e.g. "]Q1" for QR Code, "]d2" for DataMatrix)
+        if (qrContent.startsWith("]Q1") || qrContent.startsWith("]Q2") || qrContent.startsWith("]d2") || qrContent.startsWith("]C1")) {
+            qrContent = qrContent.substring(3);
+        }
+
+        // Deduplication: Ignore identical QR scan within 1 second
+        long now = System.currentTimeMillis();
+        if (qrContent.equals(lastQrData) && (now - lastQrTime < DEBOUNCE_MS)) {
+            Log.d(TAG, "Duplicate QR scan ignored: " + qrContent);
+            return;
+        }
+        lastQrData = qrContent;
+        lastQrTime = now;
+
         String timestamp = timeFormat.format(new Date());
         tvQrData.setText("Data: " + qrContent);
         tvQrTime.setText("Time: " + timestamp + " (via " + source + ")");
@@ -502,7 +538,7 @@ public class MainActivity extends Activity {
             payload.put("scan_type", "QR");
             payload.put("data", qrContent);
             payload.put("device_model", "RS38");
-            payload.put("timestamp", System.currentTimeMillis());
+            payload.put("timestamp", now);
 
             postJsonToFastAPI(payload, "QR: " + qrContent);
         } catch (Exception e) {
