@@ -48,13 +48,18 @@ public class MainActivity extends Activity {
     private static final String KEY_SERVER_URL = "server_url";
     private static final String DEFAULT_SERVER_URL = "http://127.0.0.1:8000/post_fixed_rfid";
 
-    // Known CipherLab Barcode Broadcast Actions
-    private static final String ACTION_CIPHERLAB_BARCODE_1 = "com.cipherlab.barcode.GeneralString.Intent_BARCODE_SERVICE_BROADCAST";
-    private static final String ACTION_CIPHERLAB_BARCODE_2 = "com.cipherlab.barcode.action.BARCODE_DATA";
-    private static final String ACTION_CIPHERLAB_BARCODE_3 = "action.reader.decode_data";
-    private static final String ACTION_CIPHERLAB_BARCODE_4 = "com.cipherlab.barcode.action.DECODE_DATA";
-    private static final String ACTION_CIPHERLAB_SOFTTRIGGER = "com.cipherlab.barcode.GeneralString.Intent_SOFTTRIGGER_DATA";
-    private static final String EXTRA_CIPHERLAB_SOFTTRIGGER_INT = "com.cipherlab.barcode.GeneralString.EXTRA_DATA_INT";
+    // CipherLab RS38 Native 2D Barcode / QR Actions (from system ReaderService)
+    private static final String ACTION_CIPHERLAB_PASS_DATA = "com.cipherlab.barcodebaseapi.PASS_DATA_2_APP";
+    private static final String ACTION_CIPHERLAB_CALLBACK = "sw.reader.barcodebaseapi.CALLBACK";
+    private static final String ACTION_CIPHERLAB_DECODE_COMPLETE = "sw.reader.decode.complete";
+    private static final String ACTION_CIPHERLAB_SOFTTRIGGER = "com.cipherlab.barcodebaseapi.SOFTTRIGGER_DATA";
+    private static final String ACTION_CIPHERLAB_SCANKEY_PRESS = "sw.reader.scankey.press";
+    
+    // Legacy / Alternative Barcode Actions
+    private static final String ACTION_CIPHERLAB_LEGACY_1 = "com.cipherlab.barcode.GeneralString.Intent_BARCODE_SERVICE_BROADCAST";
+    private static final String ACTION_CIPHERLAB_LEGACY_2 = "com.cipherlab.barcode.action.BARCODE_DATA";
+    private static final String ACTION_CIPHERLAB_LEGACY_3 = "action.reader.decode_data";
+    private static final String ACTION_CIPHERLAB_LEGACY_4 = "com.cipherlab.barcode.action.DECODE_DATA";
 
     // CipherLab RFID API Manager
     private RfidManager mRfidManager = null;
@@ -85,9 +90,21 @@ public class MainActivity extends Activity {
     private TextView tvLog;
     private ScrollView scrollView;
 
+    // Singleton instance for background receivers
+    private static MainActivity sInstance = null;
+
+    public static MainActivity getInstance() {
+        return sInstance;
+    }
+
+    public void onExternalBarcodeReceived(String barcode, String source) {
+        mainHandler.post(() -> handleQrCodeScanned(barcode, source));
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        sInstance = this;
         setContentView(R.layout.activity_main);
 
         // Bind Views
@@ -154,11 +171,23 @@ public class MainActivity extends Activity {
         // RFID actions
         filter.addAction(GeneralString.Intent_RFIDSERVICE_CONNECTED);
         filter.addAction(GeneralString.Intent_RFIDSERVICE_TAG_DATA);
-        // 2D Barcode actions
-        filter.addAction(ACTION_CIPHERLAB_BARCODE_1);
-        filter.addAction(ACTION_CIPHERLAB_BARCODE_2);
-        filter.addAction(ACTION_CIPHERLAB_BARCODE_3);
-        filter.addAction(ACTION_CIPHERLAB_BARCODE_4);
+        // 2D Barcode actions (RS38 Native & Legacy Actions)
+        filter.addAction(ACTION_CIPHERLAB_PASS_DATA);
+        filter.addAction(ACTION_CIPHERLAB_CALLBACK);
+        filter.addAction(ACTION_CIPHERLAB_DECODE_COMPLETE);
+        filter.addAction(ACTION_CIPHERLAB_SOFTTRIGGER);
+        filter.addAction(ACTION_CIPHERLAB_LEGACY_1);
+        filter.addAction(ACTION_CIPHERLAB_LEGACY_2);
+        filter.addAction(ACTION_CIPHERLAB_LEGACY_3);
+        filter.addAction(ACTION_CIPHERLAB_LEGACY_4);
+        filter.addAction("android.intent.action.DATA_DISPATCH");
+        filter.addAction("com.cipherlab.barcode.action.READ");
+        filter.addAction("com.cipherlab.barcode.action.DATA");
+        filter.addAction("action.barcode.decode_data");
+        filter.addAction("com.cipherlab.barcode.action.USER_ACTION");
+        filter.addAction("com.cipherlab.barcode.action.SERVICE_BROADCAST");
+        filter.addAction("com.cipherlab.barcode.decode_data");
+        filter.addAction("com.example.uhfsample.BARCODE");
 
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(myDataReceiver, filter, 2); // 2 = RECEIVER_EXPORTED
@@ -175,6 +204,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (sInstance == this) sInstance = null;
         try {
             unregisterReceiver(myDataReceiver);
         } catch (Exception e) {
@@ -234,19 +264,25 @@ public class MainActivity extends Activity {
     /**
      * Triggers the CipherLab 2D Barcode imager via Broadcast Intent.
      */
-    private void triggerBarcodeScanner() {
-        try {
-            Intent triggerIntent = new Intent(ACTION_CIPHERLAB_SOFTTRIGGER);
-            triggerIntent.putExtra(EXTRA_CIPHERLAB_SOFTTRIGGER_INT, 1);
-            sendBroadcast(triggerIntent);
+     private void triggerBarcodeScanner() {
+         try {
+             // 1. RS38 System Scan Key Press (Simulates physical side yellow button)
+             Intent scanKeyIntent = new Intent(ACTION_CIPHERLAB_SCANKEY_PRESS);
+             sendBroadcast(scanKeyIntent);
 
-            Intent altIntent = new Intent("action.reader.trigger");
-            altIntent.putExtra("trigger", true);
-            sendBroadcast(altIntent);
-        } catch (Exception e) {
-            Log.e(TAG, "Error triggering barcode scanner", e);
-        }
-    }
+             // 2. BarcodeBaseApi SoftTrigger
+             Intent softTriggerIntent = new Intent(ACTION_CIPHERLAB_SOFTTRIGGER);
+             softTriggerIntent.putExtra("com.cipherlab.barcodebaseapi.EXTRA_DATA_INT", 1);
+             sendBroadcast(softTriggerIntent);
+
+             // 3. Alternative triggers for compatibility
+             Intent legacyTrigger = new Intent("com.cipherlab.barcode.GeneralString.Intent_SOFTTRIGGER_DATA");
+             legacyTrigger.putExtra("com.cipherlab.barcode.GeneralString.EXTRA_DATA_INT", 1);
+             sendBroadcast(legacyTrigger);
+         } catch (Exception e) {
+             Log.e(TAG, "Error triggering barcode scanner", e);
+         }
+     }
 
     /**
      * Configures reader parameters suited for CipherLab RS38 (E310 Module).
@@ -296,36 +332,91 @@ public class MainActivity extends Activity {
                 handleRfidScanned(epc, tid, rssi, pc, readData);
             }
 
-            // 3. 2D BARCODE / QR CODE SCANNED (Intent)
-            else if (action.equals(ACTION_CIPHERLAB_BARCODE_1) || 
-                     action.equals(ACTION_CIPHERLAB_BARCODE_2) || 
-                     action.equals(ACTION_CIPHERLAB_BARCODE_3) ||
-                     action.equals(ACTION_CIPHERLAB_BARCODE_4)) {
-                
+            // 3. 2D BARCODE / QR CODE SCANNED (RS38 Barcode Service or Custom Intent)
+            else {
+                String codeType = intent.getStringExtra("Decoder_CodeType_String");
                 String qrData = extractBarcodeData(intent);
                 if (qrData != null && !qrData.isEmpty()) {
-                    handleQrCodeScanned(qrData, "Intent");
+                    String label = (codeType != null && !codeType.isEmpty()) ? codeType : "QR/Barcode";
+                    handleQrCodeScanned(qrData, label + " (Intent: " + action + ")");
+                } else {
+                    Bundle b = intent.getExtras();
+                    String keys = b != null ? b.keySet().toString() : "empty";
+                    appendLog("[INTENT UNPARSED] " + action + " (extras: " + keys + ")");
                 }
             }
         }
     };
 
     /**
-     * Extracts barcode text from known CipherLab intent extras.
+     * Extracts barcode text from known CipherLab RS38 and generic intent extras.
      */
     private String extractBarcodeData(Intent intent) {
-        String data = intent.getStringExtra("com.cipherlab.barcode.GeneralString.EXTRA_DATA_STRING");
-        if (data == null) data = intent.getStringExtra("data_string");
-        if (data == null) data = intent.getStringExtra("barcode_data");
-        if (data == null) data = intent.getStringExtra("data");
-        if (data == null) data = intent.getStringExtra("Barcode");
-        if (data == null) {
-            byte[] bytes = intent.getByteArrayExtra("data_byte");
-            if (bytes != null && bytes.length > 0) {
-                data = new String(bytes, StandardCharsets.UTF_8);
+        Bundle bundle = intent.getExtras();
+        if (bundle == null) return null;
+
+        // 1. Primary check: CipherLab RS38 native extra keys
+        String[] knownKeys = {
+            "Decoder_Data",
+            "Original_Decoder_Data",
+            "BcReaderData",
+            "data_string",
+            "com.cipherlab.barcode.GeneralString.EXTRA_DATA_STRING",
+            "barcode_data",
+            "data",
+            "Barcode",
+            "barcode",
+            "EXTRA_DATA_STRING",
+            "decode_data",
+            "scan_data",
+            "text"
+        };
+        for (String key : knownKeys) {
+            if (bundle.containsKey(key)) {
+                Object obj = bundle.get(key);
+                String val = extractStringValue(obj);
+                if (val != null && !val.isEmpty()) {
+                    return val;
+                }
             }
         }
-        return data;
+
+        // 2. Check byte array extras
+        byte[] bytes = intent.getByteArrayExtra("Decoder_DataArray");
+        if (bytes == null || bytes.length == 0) {
+            bytes = intent.getByteArrayExtra("data_byte");
+        }
+        if (bytes != null && bytes.length > 0) {
+            return new String(bytes, StandardCharsets.UTF_8).trim();
+        }
+
+        // 3. Dynamic scan: Search any string/bytes in the bundle (ignoring internal metadata)
+        for (String key : bundle.keySet()) {
+            if (key.equalsIgnoreCase("action") || key.equalsIgnoreCase("type") || key.equalsIgnoreCase("code") || key.equalsIgnoreCase("Decoder_CodeType")) {
+                continue;
+            }
+            Object obj = bundle.get(key);
+            String val = extractStringValue(obj);
+            if (val != null && !val.isEmpty()) {
+                return val;
+            }
+        }
+        return null;
+    }
+
+    private String extractStringValue(Object obj) {
+        if (obj == null) return null;
+        if (obj instanceof String) {
+            return ((String) obj).trim();
+        } else if (obj instanceof byte[]) {
+            return new String((byte[]) obj, StandardCharsets.UTF_8).trim();
+        } else if (obj instanceof String[]) {
+            String[] arr = (String[]) obj;
+            if (arr.length > 0 && arr[0] != null) return arr[0].trim();
+        } else if (obj instanceof CharSequence) {
+            return obj.toString().trim();
+        }
+        return null;
     }
 
     /**

@@ -22,5 +22,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".BarcodeReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.cipherlab.barcodebaseapi.PASS_DATA_2_APP" />
+                <action android:name="sw.reader.barcodebaseapi.CALLBACK" />
+                <action android:name="sw.reader.decode.complete" />
+                <action android:name="action.reader.decode_data" />
+                <action android:name="com.cipherlab.barcode.action.BARCODE_DATA" />
+                <action android:name="com.cipherlab.barcode.GeneralString.Intent_BARCODE_SERVICE_BROADCAST" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
