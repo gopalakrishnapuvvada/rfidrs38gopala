@@ -528,7 +528,7 @@ public class MainActivity extends Activity {
 
     /**
      * Processes and uploads a 2D QR code scan with business logic classification:
-     * - Starts with "WFG" -> rfidUniqueId
+     * - Starts with "WFFG" (or "WFG") -> rfidUniqueId
      * - Starts with "100" or "WAK-MAT-" / "MAT-" -> materialCode
      * - Starts with "200" or "400" or "WO-" -> workOrderNo
      * - Default -> data
@@ -558,7 +558,7 @@ public class MainActivity extends Activity {
         String classificationType;
         String payloadKey;
 
-        if (qrContent.startsWith("WFG")) {
+        if (qrContent.startsWith("WFFG") || qrContent.startsWith("WFG")) {
             classificationType = "RFID Tag";
             payloadKey = "rfidUniqueId";
         } else if (qrContent.startsWith("100") || qrContent.toUpperCase().startsWith("WAK-MAT-") || qrContent.toUpperCase().startsWith("MAT-")) {

@@ -83,7 +83,7 @@ public class BarcodeReceiver extends BroadcastReceiver {
 
                 // Classification based on production rules
                 String payloadKey;
-                if (finalBarcode.startsWith("WFG")) {
+                if (finalBarcode.startsWith("WFFG") || finalBarcode.startsWith("WFG")) {
                     payloadKey = "rfidUniqueId";
                 } else if (finalBarcode.startsWith("100") || finalBarcode.toUpperCase().startsWith("WAK-MAT-") || finalBarcode.toUpperCase().startsWith("MAT-")) {
                     payloadKey = "materialCode";

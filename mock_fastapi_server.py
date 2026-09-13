@@ -22,7 +22,7 @@ class RFIDRequestHandler(BaseHTTPRequestHandler):
             try:
                 payload = json.loads(post_data.decode("utf-8"))
                 device_id = payload.get("deviceId", payload.get("device_model", "unknown-device"))
-
+                print("payload",payload)
                 print("\n" + "="*58)
                 if "rfidUniqueId" in payload:
                     print(f"🏷️  [RFID UNIQUE ID RECEIVED FROM {device_id}]")
