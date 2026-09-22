@@ -1,10 +1,15 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.UHFSample" parent="Theme.AppCompat.Light.DarkActionBar">
+    <!-- Base enterprise application theme. -->
+    <style name="Theme.UHFSample" parent="Theme.AppCompat.Light.NoActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/purple_200</item>
-        <item name="colorPrimaryDark">@color/purple_700</item>
-        <item name="colorAccent">@color/teal_200</item>
-        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/navy_primary</item>
+        <item name="colorPrimaryDark">@color/bg_main</item>
+        <item name="colorAccent">@color/primary_blue</item>
+        
+        <!-- Window background & Light status bar -->
+        <item name="android:windowBackground">@color/bg_main</item>
+        <item name="android:statusBarColor" tools:targetApi="l">@color/bg_main</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:navigationBarColor" tools:targetApi="l">@color/card_bg</item>
     </style>
 </resources>

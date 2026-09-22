@@ -1,10 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
+    <!-- Enterprise FG Validation & Scan Palette (from Web Frontend Tokens) -->
+    <color name="bg_main">#F8FAFC</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="navy_primary">#1E3A5F</color>
+    <color name="text_secondary">#64748B</color>
+    <color name="text_muted">#94A3B8</color>
+    <color name="border_color">#E2E8F0</color>
+    
+    <!-- Brand & Primary Colors -->
+    <color name="brand_red">#E53935</color>
+    <color name="brand_red_dark">#C62828</color>
+    <color name="primary_blue">#1E3A5F</color>
+    <color name="primary_blue_accent">#0284C7</color>
+    <color name="primary_blue_dark">#0F172A</color>
+    <color name="light_blue">#EFF6FF</color>
+    <color name="light_blue_border">#BFDBFE</color>
+    
+    <!-- Success / Connected -->
+    <color name="status_green">#10B981</color>
+    <color name="status_green_dark">#059669</color>
+    <color name="light_green">#EAF8EF</color>
+    <color name="light_green_border">#A7F3D0</color>
+    
+    <!-- Warning / Awaiting -->
+    <color name="status_yellow">#D97706</color>
+    <color name="status_orange">#F59E0B</color>
+    <color name="light_yellow">#FFF7DD</color>
+    <color name="light_yellow_border">#FDE68A</color>
+    
+    <!-- Error / Alert -->
+    <color name="status_red">#EF4444</color>
+    <color name="light_red">#FEF2F2</color>
+    <color name="light_red_border">#FECACA</color>
+    
+    <!-- Work Order Purple -->
+    <color name="badge_purple">#7C3AED</color>
+    <color name="light_purple">#EDE9FE</color>
+    <color name="light_purple_border">#DDD6FE</color>
+    
+    <!-- Table Styling -->
+    <color name="table_header_bg">#F1F5F9</color>
+    <color name="table_border">#E2E8F0</color>
+    <color name="table_header_text">#1E293B</color>
+    <color name="table_row_alt">#F8FAFC</color>
+
+    <!-- Neutrals -->
+    <color name="black">#1E293B</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="gray_100">#F1F5F9</color>
+    <color name="gray_200">#E2E8F0</color>
+    <color name="gray_300">#CBD5E1</color>
+    
+    <!-- Fallback legacy compatibility -->
+    <color name="purple_200">#7C3AED</color>
+    <color name="purple_500">#1E3A5F</color>
+    <color name="purple_700">#0F172A</color>
+    <color name="teal_200">#10B981</color>
+    <color name="teal_700">#059669</color>
 </resources>

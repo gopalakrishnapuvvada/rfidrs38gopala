@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/card_bg"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="API Configuration &amp; Settings"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/navy_primary"
+        android:layout_marginBottom="4dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Configure backend server endpoint and scanner ID"
+        android:textSize="12sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="16dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border_color"
+        android:layout_marginBottom="16dp" />
+
+    <!-- API Endpoint -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="API Endpoint URL"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:textColor="@color/navy_primary"
+        android:layout_marginBottom="6dp" />
+
+    <EditText
+        android:id="@+id/dialog_edt_server_url"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_search_input"
+        android:paddingHorizontal="14dp"
+        android:hint="http://192.168.88.9:8000/post_fixed_rfid"
+        android:inputType="textUri"
+        android:textSize="13sp"
+        android:textColor="@color/navy_primary"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Device ID -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Device ID"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:textColor="@color/navy_primary"
+        android:layout_marginBottom="6dp" />
+
+    <EditText
+        android:id="@+id/dialog_edt_device_id"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_search_input"
+        android:paddingHorizontal="14dp"
+        android:hint="dev-cpr-01"
+        android:inputType="text"
+        android:textSize="13sp"
+        android:textColor="@color/navy_primary"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/dialog_btn_cancel_settings"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Cancel"
+            android:textSize="14sp"
+            android:textColor="@color/navy_primary"
+            android:background="@drawable/bg_btn_secondary"
+            android:layout_marginEnd="10dp" />
+
+        <Button
+            android:id="@+id/dialog_btn_save_settings"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Save Settings"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:background="@drawable/bg_btn_primary" />
+    </LinearLayout>
+
+</LinearLayout>
+

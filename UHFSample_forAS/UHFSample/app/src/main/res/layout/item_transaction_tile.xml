@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_card"
+    android:padding="12dp"
+    android:layout_marginBottom="10dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?android:attr/selectableItemBackground">
+
+    <!-- Row 1: Transaction ID + Category Pill + Status Badge -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="6dp">
+
+        <TextView
+            android:id="@+id/tile_tv_txn_id"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="TXN-20260921-0006"
+            android:textColor="@color/navy_primary"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:typeface="monospace" />
+
+        <TextView
+            android:id="@+id/tile_tv_category"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Mattress"
+            android:textColor="@color/primary_blue_accent"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_pill_cyan"
+            android:paddingHorizontal="7dp"
+            android:paddingVertical="2dp"
+            android:layout_marginEnd="6dp" />
+
+        <TextView
+            android:id="@+id/tile_tv_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="● WIP"
+            android:textColor="@color/status_green"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_pill_green"
+            android:paddingHorizontal="7dp"
+            android:paddingVertical="2dp" />
+    </LinearLayout>
+
+    <!-- Divider line -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border_color"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Main Content: Left Thumbnail Image + Right Details -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <!-- Product Image Thumbnail -->
+        <FrameLayout
+            android:layout_width="68dp"
+            android:layout_height="68dp"
+            android:background="@drawable/bg_scan_area_empty"
+            android:layout_marginEnd="10dp">
+
+            <ImageView
+                android:id="@+id/tile_img_product"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_image_placeholder"
+                android:contentDescription="Product Image" />
+        </FrameLayout>
+
+        <!-- Right Product Info Column -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Product / Model Name -->
+            <TextView
+                android:id="@+id/tile_tv_product_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Wakefit Dual Comfort Foam Mattress"
+                android:textColor="@color/navy_primary"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:layout_marginBottom="2dp" />
+
+            <!-- Part Number -->
+            <TextView
+                android:id="@+id/tile_tv_part_number"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Part: FG-102301022702"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:typeface="monospace"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:layout_marginBottom="2dp" />
+
+            <!-- Material Code & Colour -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tile_tv_material"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Mat: 1002345893"
+                    android:textColor="@color/brand_red"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:typeface="monospace" />
+
+                <TextView
+                    android:id="@+id/tile_tv_colour"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Color: Red"
+                    android:textColor="@color/navy_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Dimensions -->
+            <TextView
+                android:id="@+id/tile_tv_dimensions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Dim: 1981 x 1828 x 203 mm"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Work Order & RFID Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:id="@+id/tile_tv_work_order"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="WO: WO-2026-08912"
+            android:textColor="@color/badge_purple"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:typeface="monospace" />
+
+        <TextView
+            android:id="@+id/tile_tv_rfid"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="RFID: WFFG-8823-9901"
+            android:textColor="@color/primary_blue_accent"
+            android:textSize="11sp"
+            android:typeface="monospace"
+            android:maxLines="1"
+            android:ellipsize="middle" />
+    </LinearLayout>
+
+    <!-- Footer: Device Name & Timestamp -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tile_tv_device"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="📱 CipherLab RS38"
+            android:textColor="@color/text_secondary"
+            android:textSize="10sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/tile_tv_timestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🕒 2026-09-21 20:46"
+            android:textColor="@color/text_secondary"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+</LinearLayout>

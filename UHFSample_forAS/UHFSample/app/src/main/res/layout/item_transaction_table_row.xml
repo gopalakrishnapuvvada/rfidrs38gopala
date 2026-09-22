@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/row_transaction_container"
+    android:layout_width="wrap_content"
+    android:layout_height="52dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_table_row_selector"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- Col 1: FG Image (60dp) -->
+    <FrameLayout
+        android:layout_width="60dp"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:id="@+id/row_img_fg"
+            android:layout_width="40dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_image_placeholder"
+            android:background="@drawable/bg_card"
+            android:padding="4dp"
+            android:scaleType="centerInside" />
+    </FrameLayout>
+
+    <!-- Col 2: Transaction ID (160dp) -->
+    <TextView
+        android:id="@+id/row_tv_txn_id"
+        android:layout_width="160dp"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="8dp"
+        android:text="TXN-20260918-0001"
+        android:textColor="@color/brand_red"
+        android:textSize="12sp"
+        android:typeface="monospace"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <!-- Col 3: Timestamp (IST) (170dp) -->
+    <TextView
+        android:id="@+id/row_tv_timestamp"
+        android:layout_width="170dp"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="8dp"
+        android:text="18 Sep 2026, 18:52:14 (IST)"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp"
+        android:typeface="monospace"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <!-- Col 4: Factory RFID Tag ID (220dp) -->
+    <TextView
+        android:id="@+id/row_tv_rfid"
+        android:layout_width="220dp"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="8dp"
+        android:text="WFFG-8823-9901"
+        android:textColor="@color/primary_blue_accent"
+        android:textSize="12sp"
+        android:typeface="monospace"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="middle" />
+
+    <!-- Col 5: Work Order No. (WO) (160dp) -->
+    <FrameLayout
+        android:layout_width="160dp"
+        android:layout_height="match_parent"
+        android:paddingHorizontal="6dp">
+
+        <TextView
+            android:id="@+id/row_tv_work_order"
+            android:layout_width="wrap_content"
+            android:layout_height="26dp"
+            android:layout_gravity="center_vertical"
+            android:background="@drawable/bg_pill_purple"
+            android:gravity="center"
+            android:paddingHorizontal="10dp"
+            android:text="WO-2026-08912"
+            android:textColor="@color/badge_purple"
+            android:textSize="11sp"
+            android:typeface="monospace"
+            android:textStyle="bold" />
+    </FrameLayout>
+
+    <!-- Col 6: Material Code (160dp) -->
+    <TextView
+        android:id="@+id/row_tv_material"
+        android:layout_width="160dp"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="8dp"
+        android:text="1000000000000001"
+        android:textColor="@color/brand_red"
+        android:textSize="12sp"
+        android:typeface="monospace"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <!-- Col 7: Scanner Device (170dp) -->
+    <TextView
+        android:id="@+id/row_tv_device"
+        android:layout_width="170dp"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="8dp"
+        android:text="CIPHER RS38 UHF Reader #01"
+        android:textColor="@color/navy_primary"
+        android:textSize="11sp"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <!-- Col 8: State (100dp) -->
+    <FrameLayout
+        android:layout_width="100dp"
+        android:layout_height="match_parent"
+        android:paddingHorizontal="6dp">
+
+        <TextView
+            android:id="@+id/row_tv_status"
+            android:layout_width="wrap_content"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_pill_wip"
+            android:gravity="center"
+            android:paddingHorizontal="10dp"
+            android:text="⏳ WIP"
+            android:textColor="@color/status_yellow"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+    </FrameLayout>
+
+</LinearLayout>
+

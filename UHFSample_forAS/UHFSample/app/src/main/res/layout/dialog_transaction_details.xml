@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/card_bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Modal Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Transaction Details"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/navy_primary" />
+
+            <TextView
+                android:id="@+id/dialog_tv_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✓ COMPLETED"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/status_green"
+                android:background="@drawable/bg_badge_captured"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/dialog_tv_txn_id"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TXN-20260918-0001"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:typeface="monospace"
+            android:textColor="@color/primary_blue"
+            android:layout_marginBottom="2dp" />
+
+        <TextView
+            android:id="@+id/dialog_tv_timestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="18 Sep 2026, 18:52:14 (IST)"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/border_color"
+            android:layout_marginBottom="14dp" />
+
+        <!-- RFID SECTION -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="RFID TAG DETAILS"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_scan_area_captured"
+            android:padding="12dp"
+            android:layout_marginBottom="14dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="EPC / Tag ID:"
+                android:textSize="11sp"
+                android:textColor="@color/text_secondary" />
+
+            <TextView
+                android:id="@+id/dialog_tv_epc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="300833B2DDD9014000000000"
+                android:textSize="13sp"
+                android:typeface="monospace"
+                android:textStyle="bold"
+                android:textColor="@color/navy_primary"
+                android:layout_marginBottom="6dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TID:"
+                android:textSize="11sp"
+                android:textColor="@color/text_secondary" />
+
+            <TextView
+                android:id="@+id/dialog_tv_tid"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="E28011606000021A58"
+                android:textSize="12sp"
+                android:typeface="monospace"
+                android:textColor="@color/navy_primary"
+                android:layout_marginBottom="6dp" />
+
+            <TextView
+                android:id="@+id/dialog_tv_rssi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="RSSI: -52.0 dBm"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary" />
+        </LinearLayout>
+
+        <!-- MATERIAL SECTION: CONFIGURED FG MASTER DATA -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MATERIAL CODE (CONFIGURED FG MASTER DATA)"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_scan_area_captured"
+            android:padding="12dp"
+            android:layout_marginBottom="14dp">
+
+            <!-- Swipable Image Gallery inside Dialog -->
+            <FrameLayout
+                android:id="@+id/dialog_layout_gallery"
+                android:layout_width="match_parent"
+                android:layout_height="160dp"
+                android:background="@drawable/bg_scan_area_empty"
+                android:layout_marginBottom="10dp">
+
+                <ImageView
+                    android:id="@+id/dialog_img_fg"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_image_placeholder"
+                    android:contentDescription="FG Image" />
+
+                <TextView
+                    android:id="@+id/dialog_tv_img_angle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="6dp"
+                    android:background="@drawable/bg_angle_badge"
+                    android:text="ANGLE 1/1"
+                    android:textColor="@color/white"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/dialog_btn_img_prev"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center_vertical|start"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_arrow_btn"
+                    android:text="◀"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:padding="0dp" />
+
+                <Button
+                    android:id="@+id/dialog_btn_img_next"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center_vertical|end"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/bg_arrow_btn"
+                    android:text="▶"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:padding="0dp" />
+            </FrameLayout>
+
+            <!-- Badges Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="6dp">
+
+                <TextView
+                    android:id="@+id/dialog_tv_category"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Mattress"
+                    android:textColor="@color/primary_blue_accent"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/bg_pill_cyan"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:layout_marginEnd="6dp" />
+
+                <TextView
+                    android:id="@+id/dialog_tv_fg_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Active"
+                    android:textColor="@color/status_green"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/bg_pill_green"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/dialog_tv_product_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Wakefit Dual Comfort Foam Mattress"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/navy_primary"
+                android:layout_marginBottom="2dp" />
+
+            <TextView
+                android:id="@+id/dialog_tv_part_number"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Part Number: FG-102301022702"
+                android:textSize="11sp"
+                android:typeface="monospace"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:id="@+id/dialog_tv_material_code"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Material Code: 1002345893"
+                android:textSize="12sp"
+                android:typeface="monospace"
+                android:textStyle="bold"
+                android:textColor="@color/brand_red"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:id="@+id/dialog_tv_dimensions"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dimensions: 0 x 0 x 0 mm"
+                android:textSize="11sp"
+                android:textColor="@color/navy_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="2dp" />
+
+            <TextView
+                android:id="@+id/dialog_tv_colour"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Color: Red"
+                android:textSize="11sp"
+                android:textColor="@color/navy_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="2dp" />
+
+            <TextView
+                android:id="@+id/dialog_tv_product_family"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Package: Rolled Vacuum Box"
+                android:textSize="11sp"
+                android:textColor="@color/text_secondary" />
+        </LinearLayout>
+
+        <!-- WORK ORDER SECTION -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="WORK ORDER"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_scan_area_captured"
+            android:padding="12dp"
+            android:layout_marginBottom="14dp">
+
+            <TextView
+                android:id="@+id/dialog_tv_work_order"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="WO-2026-08912"
+                android:textSize="14sp"
+                android:typeface="monospace"
+                android:textStyle="bold"
+                android:textColor="@color/navy_primary" />
+        </LinearLayout>
+
+        <!-- SCANNER / DEVICE SECTION -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SCANNER DEVICE"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_scan_area_captured"
+            android:padding="12dp"
+            android:layout_marginBottom="20dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_scanner"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/dialog_tv_device_id"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="dev-cpr-01 (Station Line 1)"
+                android:textSize="13sp"
+                android:textColor="@color/navy_primary" />
+        </LinearLayout>
+
+        <!-- Close Button -->
+        <Button
+            android:id="@+id/dialog_btn_close"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Close"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:background="@drawable/bg_btn_primary" />
+
+    </LinearLayout>
+</ScrollView>
+

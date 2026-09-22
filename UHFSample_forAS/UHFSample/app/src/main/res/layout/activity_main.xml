@@ -1,269 +1,1246 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="12dp"
-    tools:context=".MainActivity">
+    android:background="@color/bg_main">
 
-    <!-- Header -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="CipherLab RS38 - Dual Scanner"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:textColor="#1976D2"
-        android:gravity="center"
-        android:layout_marginBottom="4dp" />
-
-    <!-- Service Connection Status -->
-    <TextView
-        android:id="@+id/tv_service_status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="RFID: Connecting... | 2D Barcode: Ready"
-        android:textSize="12sp"
-        android:textColor="#666666"
-        android:layout_marginBottom="6dp" />
-
-    <!-- Server Configuration Section -->
+    <!-- ============================================================= -->
+    <!-- GLOBAL APPLICATION HEADER (Fixed at top across all screens)   -->
+    <!-- ============================================================= -->
     <LinearLayout
+        android:id="@+id/global_header"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="4dp">
-
-        <EditText
-            android:id="@+id/edt_server_url"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="http://192.168.88.9:8000/post_fixed_rfid"
-            android:inputType="textUri"
-            android:textSize="12sp"
-            android:maxLines="1" />
-
-        <Button
-            android:id="@+id/btn_save_url"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Save"
-            android:textSize="12sp" />
-    </LinearLayout>
-
-    <!-- Device ID Configuration -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:layout_height="60dp"
+        android:layout_alignParentTop="true"
+        android:background="@color/card_bg"
         android:gravity="center_vertical"
-        android:layout_marginBottom="8dp">
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:elevation="2dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Device ID: "
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:textColor="#333333" />
+        <!-- Left: Hamburger Menu Button -->
+        <FrameLayout
+            android:id="@+id/header_btn_menu"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true">
 
-        <EditText
-            android:id="@+id/edt_device_id"
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_menu" />
+        </FrameLayout>
+
+        <!-- Center: Dynamic Title & Subtitle -->
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="dev-cpr-01"
-            android:text="dev-cpr-01"
-            android:inputType="text"
-            android:textSize="12sp"
-            android:maxLines="1" />
+            android:layout_marginStart="8dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/header_tv_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Product Validation"
+                android:textColor="@color/navy_primary"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/header_tv_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Wakefit Finished Goods Label &amp; RFID System"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <!-- Right: Notifications + User Avatar -->
+        <FrameLayout
+            android:id="@+id/header_btn_notifications"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginEnd="4dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_bell" />
+
+            <!-- Green live indicator dot -->
+            <View
+                android:layout_width="7dp"
+                android:layout_height="7dp"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="6dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_pill_green" />
+        </FrameLayout>
+
+        <!-- User Avatar (SA) -->
+        <TextView
+            android:id="@+id/header_avatar"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_avatar_circle"
+            android:gravity="center"
+            android:text="SA"
+            android:textColor="@color/white"
+            android:textSize="11sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Card 1: Last Scanned RFID Tag -->
-    <LinearLayout
+    <!-- Header Divider Line -->
+    <View
+        android:id="@+id/header_divider"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="8dp"
-        android:background="#EEEEEE"
-        android:layout_marginBottom="8dp">
+        android:layout_height="1dp"
+        android:layout_below="@id/global_header"
+        android:background="@color/border_color" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="🏷️ Last Scanned RFID Tag"
-            android:textStyle="bold"
-            android:textSize="13sp"
-            android:textColor="#D32F2F"
-            android:layout_marginBottom="2dp" />
 
-        <TextView
-            android:id="@+id/tv_epc"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="EPC: (None)"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:textColor="#333333"
-            android:fontFamily="monospace" />
+    <!-- ============================================================= -->
+    <!-- FIXED BOTTOM NAVIGATION BAR                                   -->
+    <!-- ============================================================= -->
+    <LinearLayout
+        android:id="@+id/bottom_navigation"
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/bg_bottom_nav"
+        android:orientation="horizontal"
+        android:weightSum="3"
+        android:elevation="8dp">
+
+        <!-- Tab 1: Device Config -->
+        <!-- Tab 1: Scanner -->
+        <LinearLayout
+            android:id="@+id/nav_item_scanner"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground">
+
+            <ImageView
+                android:id="@+id/nav_icon_scanner"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_settings" />
+
+            <TextView
+                android:id="@+id/nav_label_scanner"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Device Config"
+                android:textSize="11sp"
+                android:textColor="@color/text_secondary" />
+        </LinearLayout>
+
+        <!-- Tab 2: Validation (DEFAULT ACTIVE TAB) -->
+        <LinearLayout
+            android:id="@+id/nav_item_validation"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground">
+
+            <ImageView
+                android:id="@+id/nav_icon_validation"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_validation" />
+
+            <TextView
+                android:id="@+id/nav_label_validation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Validation"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/brand_red" />
+        </LinearLayout>
+
+        <!-- Tab 3: Records -->
+        <LinearLayout
+            android:id="@+id/nav_item_records"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground">
+
+            <ImageView
+                android:id="@+id/nav_icon_records"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_records" />
+
+            <TextView
+                android:id="@+id/nav_label_records"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Records"
+                android:textSize="11sp"
+                android:textColor="@color/text_secondary" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ============================================================= -->
+    <!-- MAIN SCROLLABLE CONTENT AREA                                  -->
+    <!-- ============================================================= -->
+    <ScrollView
+        android:id="@+id/main_scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/header_divider"
+        android:layout_above="@id/bottom_navigation"
+        android:fillViewport="true"
+        android:scrollbars="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:paddingHorizontal="14dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="24dp">
 
-            <TextView
-                android:id="@+id/tv_tid"
-                android:layout_width="0dp"
+            <!-- ***************************************************** -->
+            <!-- SCREEN 1: DUAL SCANNER LAYOUT (Technical Mode)        -->
+            <!-- ***************************************************** -->
+            <LinearLayout
+                android:id="@+id/layout_screen_scanner"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="TID: -"
-                android:textSize="11sp"
-                android:textColor="#555555"
-                android:fontFamily="monospace" />
+                android:orientation="vertical"
+                android:visibility="gone">
 
-            <TextView
-                android:id="@+id/tv_rssi"
-                android:layout_width="wrap_content"
+                <!-- CARD: Server Network Configuration (Device Config Only) -->
+                <LinearLayout
+                    android:id="@+id/layout_server_ip_bar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card"
+                    android:padding="12dp"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:src="@drawable/ic_wifi"
+                            android:tint="@color/brand_red"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Server IP:PORT"
+                            android:textColor="@color/navy_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <EditText
+                            android:id="@+id/edt_server_ip"
+                            android:layout_width="0dp"
+                            android:layout_height="38dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_search_input"
+                            android:hint="192.168.1.14:8000"
+                            android:text="192.168.1.14:8000"
+                            android:inputType="textUri"
+                            android:singleLine="true"
+                            android:textSize="12sp"
+                            android:typeface="monospace"
+                            android:textColor="@color/navy_primary"
+                            android:paddingHorizontal="10dp" />
+
+                        <Button
+                            android:id="@+id/btn_save_ip"
+                            android:layout_width="wrap_content"
+                            android:layout_height="38dp"
+                            android:text="SAVE"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/white"
+                            android:background="@drawable/bg_btn_primary"
+                            android:paddingHorizontal="14dp"
+                            android:layout_marginStart="8dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+
+                <!-- CARD: Device Identity & Authorization -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card"
+                    android:padding="14dp"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_settings"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="🛡️ Device Identity &amp; Auth"
+                            android:textColor="@color/navy_primary"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_config_auth_badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="● AUTHORIZED"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/status_green"
+                            android:background="@drawable/bg_pill_green"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="3dp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="DEVICE DISPLAY NAME:"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp" />
+
+                    <TextView
+                        android:id="@+id/tv_config_dev_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CipherLab RS38"
+                        android:textColor="@color/navy_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="6dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="6dp">
+
+                        <TextView
+                            android:id="@+id/tv_config_dev_mac"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="MAC: 00:00:00:00:00:00"
+                            android:textColor="@color/primary_blue_accent"
+                            android:textSize="11sp"
+                            android:typeface="monospace" />
+
+                        <TextView
+                            android:id="@+id/tv_config_dev_id"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="ID: dev-cpr-01"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp"
+                            android:typeface="monospace" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tv_config_dev_model"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Model: CipherLab RS38 Handheld Computer"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ***************************************************** -->
+            <!-- SCREEN 2: PRODUCT VALIDATION LAYOUT (DEFAULT SCREEN)  -->
+            <!-- ***************************************************** -->
+            <LinearLayout
+                android:id="@+id/layout_screen_validation"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="RSSI: - dBm"
-                android:textSize="11sp"
-                android:textColor="#555555" />
+                android:orientation="vertical"
+                android:visibility="visible">
+
+                <!-- Status Pills Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="10dp">
+
+                    <TextView
+                        android:id="@+id/tv_val_status_pill"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="36dp"
+                        android:layout_weight="1.2"
+                        android:gravity="center"
+                        android:text="● LIVE SCANNER ACTIVE (0/3)"
+                        android:textColor="@color/status_green"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/bg_pill_green"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="4dp"
+                        android:layout_marginEnd="5dp" />
+
+                    <TextView
+                        android:id="@+id/tv_val_device_pill"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="36dp"
+                        android:layout_weight="0.8"
+                        android:gravity="center"
+                        android:text="1/1 Online"
+                        android:textColor="@color/status_yellow"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/bg_pill_yellow"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="4dp"
+                        android:layout_marginStart="5dp" />
+                </LinearLayout>
+
+                <!-- CARD 1: STEP 1 - RFID -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card"
+                    android:padding="12dp"
+                    android:layout_marginBottom="10dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_rfid"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="1. FACTORY GENERATED RFID TAG UNIQUE ID"
+                            android:textColor="@color/navy_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_val_badge_rfid"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="⌛ AWAITING RFID SCAN"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/status_yellow"
+                            android:background="@drawable/bg_badge_awaiting"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="3dp" />
+                    </LinearLayout>
+
+                    <!-- RFID Empty Area -->
+                    <TextView
+                        android:id="@+id/tv_val_rfid_empty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_scan_area_empty"
+                        android:gravity="center"
+                        android:padding="14dp"
+                        android:text="--- Waiting for RFID Tag scan event ---"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:typeface="monospace"
+                        android:visibility="visible" />
+
+                    <!-- RFID Captured Area -->
+                    <LinearLayout
+                        android:id="@+id/layout_val_rfid_captured"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:background="@drawable/bg_scan_area_captured"
+                        android:padding="12dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="RFID UNIQUE ID (EPC):"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="10sp" />
+
+                        <TextView
+                            android:id="@+id/tv_val_rfid_epc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="WFFG-8823-9901"
+                            android:textColor="@color/primary_blue_accent"
+                            android:textSize="14sp"
+                            android:typeface="monospace"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="4dp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/tv_val_rfid_tid"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="TID: E28011606000021A58"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp"
+                                android:typeface="monospace" />
+
+                            <TextView
+                                android:id="@+id/tv_val_rfid_rssi"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="RSSI: -44.0 dBm (Strong)"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Protocol: EPC Gen2 / ISO 18000-6C (UHF 865.7 MHz)"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp"
+                        android:layout_marginTop="4dp" />
+
+                    <!-- Trigger RFID sample button -->
+                    <Button
+                        android:id="@+id/btn_val_trigger_rfid"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:text="⚡ Trigger RFID (Sample)"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/primary_blue_accent"
+                        android:background="@drawable/bg_btn_secondary"
+                        android:layout_marginTop="8dp" />
+                </LinearLayout>
+
+                <!-- CARD 2: STEP 2 - MATERIAL CODE / CONFIGURED FG MASTER DATA -->
+                <!-- CARD 2: STEP 2 - MATERIAL CODE -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card"
+                    android:padding="12dp"
+                    android:layout_marginBottom="10dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_qr_code"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="2. QR CODE 1 (MATERIAL CODE) ➔ FG MASTER DATA"
+                            android:textColor="@color/navy_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_val_badge_material"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="⌛ AWAITING MATERIAL SCAN"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/status_yellow"
+                            android:background="@drawable/bg_badge_awaiting"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="3dp" />
+                    </LinearLayout>
+
+                    <!-- Empty State -->
+                    <TextView
+                        android:id="@+id/layout_val_material_empty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_scan_area_empty"
+                        android:gravity="center"
+                        android:padding="14dp"
+                        android:text="--- Waiting for Material Code barcode scan ---"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:typeface="monospace"
+                        android:visibility="visible" />
+
+                    <!-- Captured State: CONFIGURED FG MASTER DATA DISPLAY -->
+                    <!-- Captured State -->
+                    <LinearLayout
+                        android:id="@+id/layout_val_material_captured"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:background="@drawable/bg_scan_area_captured"
+                        android:padding="12dp"
+                        android:visibility="gone">
+
+                        <!-- Material Code Header Badge -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="8dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="MATERIAL CODE: "
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tv_val_material_code"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="1002345893"
+                                android:textColor="@color/primary_blue_accent"
+                                android:textSize="13sp"
+                                android:typeface="monospace"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- Swipable FG Image Gallery Container -->
+                        <FrameLayout
+                            android:id="@+id/layout_val_fg_gallery"
+                            android:layout_width="match_parent"
+                            android:layout_height="180dp"
+                            android:background="@drawable/bg_scan_area_empty"
+                            android:layout_marginBottom="10dp">
+
+                            <ImageView
+                                android:id="@+id/img_val_fg"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:scaleType="fitCenter"
+                                android:src="@drawable/ic_image_placeholder"
+                                android:contentDescription="Finished Good Image" />
+
+                            <!-- Angle Badge (e.g. ANGLE 1/4) -->
+                            <TextView
+                                android:id="@+id/tv_val_img_angle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="bottom|end"
+                                android:layout_margin="8dp"
+                                android:background="@drawable/bg_angle_badge"
+                                android:text="ANGLE 1/1"
+                                android:textColor="@color/white"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+
+                            <!-- Prev Image Arrow -->
+                            <Button
+                                android:id="@+id/btn_val_img_prev"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:layout_gravity="center_vertical|start"
+                                android:layout_marginStart="8dp"
+                                android:background="@drawable/bg_arrow_btn"
+                                android:text="◀"
+                                android:textColor="@color/white"
+                                android:textSize="13sp"
+                                android:gravity="center"
+                                android:padding="0dp" />
+
+                            <!-- Next Image Arrow -->
+                            <Button
+                                android:id="@+id/btn_val_img_next"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:layout_gravity="center_vertical|end"
+                                android:layout_marginEnd="8dp"
+                                android:background="@drawable/bg_arrow_btn"
+                                android:text="▶"
+                                android:textColor="@color/white"
+                                android:textSize="13sp"
+                                android:gravity="center"
+                                android:padding="0dp" />
+                        </FrameLayout>
+
+                        <!-- Badges Row: Category + Status -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="6dp">
+
+                            <TextView
+                                android:id="@+id/tv_val_cat_badge"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Mattress"
+                                android:textColor="@color/primary_blue_accent"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:background="@drawable/bg_pill_cyan"
+                                android:paddingHorizontal="10dp"
+                                android:paddingVertical="3dp"
+                                android:layout_marginEnd="8dp" />
+
+                            <TextView
+                                android:id="@+id/tv_val_status_badge"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Active"
+                                android:textColor="@color/status_green"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:background="@drawable/bg_pill_green"
+                                android:paddingHorizontal="10dp"
+                                android:paddingVertical="3dp" />
+                        </LinearLayout>
+
+                        <!-- Product Description / Model Title -->
+                        <TextView
+                            android:id="@+id/tv_val_mat_name"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Wakefit Dual Comfort Foam Mattress"
+                            android:textColor="@color/navy_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="2dp" />
+
+                        <!-- Part Number -->
+                        <TextView
+                            android:id="@+id/tv_val_part_no"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Part Number: FG-102301022702"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp"
+                            android:typeface="monospace"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="8dp" />
+
+                        <!-- Divider -->
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="@color/border_color"
+                            android:layout_marginBottom="8dp" />
+
+                        <!-- Specification Metrics Grid (2 Columns) -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <!-- Column 1 -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical"
+                                android:layout_marginEnd="6dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Dimensions (LxWxH):"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="10sp" />
+
+                                <TextView
+                                    android:id="@+id/tv_val_spec_dim"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="0 x 0 x 0 mm"
+                                    android:textColor="@color/navy_primary"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold"
+                                    android:layout_marginBottom="6dp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Color Variant:"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="10sp" />
+
+                                <TextView
+                                    android:id="@+id/tv_val_spec_color"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Red"
+                                    android:textColor="@color/navy_primary"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold"
+                                    android:layout_marginBottom="6dp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Package Type:"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="10sp" />
+
+                                <TextView
+                                    android:id="@+id/tv_val_spec_pkg"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Rolled Vacuum Box"
+                                    android:textColor="@color/navy_primary"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <!-- Column 2 -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical"
+                                android:layout_marginStart="6dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Model:"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="10sp" />
+
+                                <TextView
+                                    android:id="@+id/tv_val_spec_model"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Dual Comfort Foam"
+                                    android:textColor="@color/navy_primary"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold"
+                                    android:layout_marginBottom="6dp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Net / Gross Weight:"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="10sp" />
+
+                                <TextView
+                                    android:id="@+id/tv_val_spec_weight"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="0 kg / 0 kg"
+                                    android:textColor="@color/navy_primary"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold"
+                                    android:layout_marginBottom="6dp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Status:"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="10sp" />
+
+                                <TextView
+                                    android:id="@+id/tv_val_spec_status"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Active"
+                                    android:textColor="@color/status_green"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                        </LinearLayout>
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- CARD 3: STEP 3 - WORK ORDER -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card"
+                    android:padding="12dp"
+                    android:layout_marginBottom="10dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_document"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="3. QR CODE 2 (WORK ORDER NUMBER - WO)"
+                            android:textColor="@color/navy_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_val_badge_wo"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="⌛ AWAITING WORK ORDER SCAN"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/status_yellow"
+                            android:background="@drawable/bg_badge_awaiting"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="3dp" />
+                    </LinearLayout>
+
+                    <!-- Empty State -->
+                    <TextView
+                        android:id="@+id/tv_val_wo_empty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_scan_area_empty"
+                        android:gravity="center"
+                        android:padding="14dp"
+                        android:text="--- Waiting for Work Order barcode scan ---"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:typeface="monospace"
+                        android:visibility="visible" />
+
+                    <!-- Captured State -->
+                    <LinearLayout
+                        android:id="@+id/layout_val_wo_captured"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:background="@drawable/bg_scan_area_captured"
+                        android:padding="12dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="WORK ORDER NUMBER:"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="10sp" />
+
+                        <TextView
+                            android:id="@+id/tv_val_wo_code"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="WO-2026-08912"
+                            android:textColor="@color/badge_purple"
+                            android:textSize="14sp"
+                            android:typeface="monospace"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- CARD 4: LIVE SCANNER CONTROLS & QUEUE -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card_highlight"
+                    android:padding="12dp"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:id="@+id/tv_val_live_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Listening for Live Scanner Data (0/3 Captured)"
+                        android:textColor="@color/navy_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_val_live_device"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Active Device: CIPHER RS38 UHF Reader (dev-cpr-01)"
+                        android:textColor="@color/brand_red"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="2dp" />
+
+                    <TextView
+                        android:id="@+id/tv_val_live_prompt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Awaiting live barcode/RFID scan events from device."
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:layout_marginBottom="10dp" />
+
+                    <!-- Action Buttons: Cancel / Reset & Queue -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="0dp">
+
+                        <Button
+                            android:id="@+id/btn_val_reset"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:minHeight="46dp"
+                            android:layout_weight="1"
+                            android:text="⊗ Cancel / Reset"
+                            android:textSize="12sp"
+                            android:textColor="@color/navy_primary"
+                            android:background="@drawable/bg_btn_secondary"
+                            android:layout_marginEnd="5dp" />
+
+                        <Button
+                            android:id="@+id/btn_val_queue"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:minHeight="46dp"
+                            android:layout_weight="1.3"
+                            android:text="✓ Queue (0/3 Scanned)"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/white"
+                            android:background="@drawable/bg_btn_queue_disabled"
+                            android:enabled="false"
+                            android:layout_marginStart="5dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+            </LinearLayout>
+
+
+            <!-- ***************************************************** -->
+            <!-- SCREEN 3: RECORDS LAYOUT (Dedicated History Screen)   -->
+            <!-- ***************************************************** -->
+            <LinearLayout
+                android:id="@+id/layout_screen_records"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <!-- Header Row with Dynamic Count -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="10dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="FG WIP Transaction Records"
+                        android:textColor="@color/navy_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_rec_count_badge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0 Records (Last 10)"
+                        android:textColor="@color/brand_red"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/bg_pill_blue"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="4dp" />
+                </LinearLayout>
+
+                <!-- Search Bar -->
+                <EditText
+                    android:id="@+id/edt_rec_search"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_search_input"
+                    android:drawableStart="@drawable/ic_search"
+                    android:drawablePadding="10dp"
+                    android:hint="Search Transaction ID / RFID / Material / WO..."
+                    android:inputType="text"
+                    android:textSize="12sp"
+                    android:textColor="@color/navy_primary"
+                    android:paddingHorizontal="12dp"
+                    android:layout_marginBottom="10dp" />
+
+                <!-- Tiles Container for Mobile Transactions (Last 10 This Device) -->
+                <LinearLayout
+                    android:id="@+id/layout_rec_tiles_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="visible" />
+
+                <!-- Empty State for Records -->
+                <LinearLayout
+                    android:id="@+id/layout_rec_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@drawable/bg_card"
+                    android:padding="32dp"
+                    android:layout_marginTop="8dp"
+                    android:visibility="visible">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@drawable/ic_records"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No records found"
+                        android:textColor="@color/navy_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_rec_empty_subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No recent transactions found for this device"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ===================================================== -->
+            <!-- APPLICATION FOOTER & BRANDING                         -->
+            <!-- ===================================================== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Wakefit Finished Goods Label Generation &amp; Auto-ID System"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:gravity="center" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="v2.5.0 (Enterprise) • CipherLab RS38"
+                    android:textColor="@color/text_muted"
+                    android:textSize="10sp"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
         </LinearLayout>
-    </LinearLayout>
-
-    <!-- Card 2: Last Scanned QR Code -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="8dp"
-        android:background="#E3F2FD"
-        android:layout_marginBottom="8dp">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="📱 Last Scanned QR Code / Barcode"
-            android:textStyle="bold"
-            android:textSize="13sp"
-            android:textColor="#1565C0"
-            android:layout_marginBottom="2dp" />
-
-        <TextView
-            android:id="@+id/tv_qr_data"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Data: (None)"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:textColor="#0D47A1"
-            android:fontFamily="monospace" />
-
-        <TextView
-            android:id="@+id/tv_qr_time"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Status: Ready for 2D barcode scan"
-            android:textSize="11sp"
-            android:textColor="#555555"
-            android:layout_marginBottom="4dp" />
-
-        <!-- Dedicated QR input box for direct capture & keyboard wedge -->
-        <EditText
-            android:id="@+id/edt_qr_input"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Or aim &amp; press RS38 side scan key..."
-            android:textSize="11sp"
-            android:singleLine="true"
-            android:background="#FFFFFF"
-            android:padding="6dp" />
-    </LinearLayout>
-
-    <!-- API Response Status -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="6dp"
-        android:background="#E8F5E9"
-        android:layout_marginBottom="8dp">
-
-        <TextView
-            android:id="@+id/tv_api_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="API Status: Idle (Ready)"
-            android:textSize="12sp"
-            android:textColor="#2E7D32"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- Action Buttons -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="6dp">
-
-        <Button
-            android:id="@+id/btn_trigger_rfid"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Scan RFID"
-            android:textSize="12sp"
-            android:layout_marginEnd="3dp" />
-
-        <Button
-            android:id="@+id/btn_trigger_qr"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Scan QR"
-            android:textSize="12sp"
-            android:layout_marginStart="3dp"
-            android:layout_marginEnd="3dp" />
-
-        <Button
-            android:id="@+id/btn_clear_log"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.8"
-            android:text="Clear"
-            android:textSize="12sp"
-            android:layout_marginStart="3dp" />
-    </LinearLayout>
-
-    <!-- Activity Log Header -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Live Transmission Log:"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="2dp" />
-
-    <!-- Scrollable Log Output -->
-    <ScrollView
-        android:id="@+id/scroll_view"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="#FAFAFA"
-        android:padding="6dp">
-
-        <TextView
-            android:id="@+id/tv_log"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Dual scanner ready.\n"
-            android:textSize="11sp"
-            android:fontFamily="monospace"
-            android:textColor="#424242" />
     </ScrollView>
 
-</LinearLayout>
+    <!-- Invisible EditText to keep CipherLab 2D Barcode Keyboard-Wedge buffer actively listening -->
+    <EditText
+        android:id="@+id/edt_qr_input"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:layout_alignParentBottom="true"
+        android:alpha="0"
+        android:cursorVisible="false"
+        android:background="@null"
+        android:inputType="text" />
+
+</RelativeLayout>

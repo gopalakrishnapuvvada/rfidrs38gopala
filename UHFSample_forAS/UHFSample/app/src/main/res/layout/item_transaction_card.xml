@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_card"
+    android:padding="14dp"
+    android:layout_marginBottom="10dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- Top Row: Transaction ID & Status Badge -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="2dp">
+
+        <TextView
+            android:id="@+id/card_tv_txn_id"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="TXN-20260918-0001"
+            android:textSize="13sp"
+            android:typeface="monospace"
+            android:textStyle="bold"
+            android:textColor="@color/navy_primary" />
+
+        <TextView
+            android:id="@+id/card_tv_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✓ COMPLETED"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="@color/status_green"
+            android:background="@drawable/bg_badge_captured"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="3dp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/card_tv_timestamp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="18 Sep 2026, 18:52:14 (IST)"
+        android:textSize="11sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="10dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border_color"
+        android:layout_marginBottom="10dp" />
+
+    <!-- RFID Field -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="RFID Tag (EPC)"
+        android:textSize="10sp"
+        android:textColor="@color/text_secondary" />
+
+    <TextView
+        android:id="@+id/card_tv_rfid"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="300833B2DDD9014000000000"
+        android:textSize="12sp"
+        android:typeface="monospace"
+        android:textStyle="bold"
+        android:textColor="@color/navy_primary"
+        android:maxLines="1"
+        android:ellipsize="middle"
+        android:layout_marginBottom="6dp" />
+
+    <!-- Material Code Field -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Material Code"
+        android:textSize="10sp"
+        android:textColor="@color/text_secondary" />
+
+    <TextView
+        android:id="@+id/card_tv_material"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="WAK-MAT-10048291"
+        android:textSize="12sp"
+        android:typeface="monospace"
+        android:textStyle="bold"
+        android:textColor="@color/navy_primary"
+        android:layout_marginBottom="6dp" />
+
+    <!-- Work Order Field -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Work Order"
+        android:textSize="10sp"
+        android:textColor="@color/text_secondary" />
+
+    <TextView
+        android:id="@+id/card_tv_work_order"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="WO-2026-08912"
+        android:textSize="12sp"
+        android:typeface="monospace"
+        android:textStyle="bold"
+        android:textColor="@color/navy_primary"
+        android:layout_marginBottom="8dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border_color"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Bottom Row: Scanner Device & Chevron -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/card_tv_device"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Scanner: dev-cpr-01"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary" />
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_chevron_right" />
+    </LinearLayout>
+
+</LinearLayout>
+
