@@ -618,7 +618,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="2. QR CODE 1 (MATERIAL CODE) ➔ FG MASTER DATA"
+                            android:text="(MATERIAL CODE)"
                             android:textColor="@color/navy_primary"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -964,7 +964,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="3. QR CODE 2 (WORK ORDER NUMBER - WO)"
+                            android:text="3.WORK ORDER NUMBER"
                             android:textColor="@color/navy_primary"
                             android:textSize="12sp"
                             android:textStyle="bold" />
