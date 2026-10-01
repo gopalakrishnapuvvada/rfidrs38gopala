@@ -4,7 +4,9 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
 import android.content.Context;
+import android.net.Uri;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -32,6 +34,15 @@ import android.widget.ScrollView;
 import android.widget.TableLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.provider.MediaStore;
+import android.content.pm.PackageManager;
+import android.widget.HorizontalScrollView;
+import android.util.Base64;
+import java.io.ByteArrayOutputStream;
+
 
 import com.cipherlab.rfid.ClResult;
 import com.cipherlab.rfid.GeneralString;
@@ -169,6 +180,16 @@ public class MainActivity extends Activity {
     private View layoutValWoCaptured;
     private TextView tvValLiveTitle, tvValLiveDevice;
     private Button btnValReset, btnValQueue;
+
+    // Step 4 Inspection Photos (1 to 8 images)
+    private TextView tvValBadgePhotos, tvValPhotosHint;
+    private Button btnValGalleryPhoto, btnValClearPhotos;
+    private LinearLayout layoutValPhotoThumbnailsContainer;
+    private HorizontalScrollView scrollValPhotoThumbnails;
+    private final List<Bitmap> capturedBitmaps = new ArrayList<>();
+    private static final int REQUEST_GALLERY_IMAGES = 1003;
+    private static final int REQUEST_STORAGE_PERMISSION = 1004;
+
 
     // SCREEN 3: RECORDS
     private TextView tvRecCountBadge;
@@ -363,6 +384,15 @@ public class MainActivity extends Activity {
         tvValLiveDevice = findViewById(R.id.tv_val_live_device);
         btnValReset = findViewById(R.id.btn_val_reset);
         btnValQueue = findViewById(R.id.btn_val_queue);
+
+        // Step 4: Inspection Photos Views
+        tvValBadgePhotos = findViewById(R.id.tv_val_badge_photos);
+        tvValPhotosHint = findViewById(R.id.tv_val_photos_hint);
+        btnValGalleryPhoto = findViewById(R.id.btn_val_gallery_photo);
+        btnValClearPhotos = findViewById(R.id.btn_val_clear_photos);
+        layoutValPhotoThumbnailsContainer = findViewById(R.id.layout_val_photo_thumbnails_container);
+        scrollValPhotoThumbnails = findViewById(R.id.scroll_val_photo_thumbnails);
+
 
 
         // Screen 3: Records Views (Mobile Tiles)
@@ -571,6 +601,14 @@ public class MainActivity extends Activity {
     private void setupValidationScreenListeners() {
         btnValReset.setOnClickListener(v -> performCancelScan());
         btnValQueue.setOnClickListener(v -> performQueueTransaction());
+
+        if (btnValGalleryPhoto != null) {
+            btnValGalleryPhoto.setOnClickListener(v -> dispatchPickImagesFromGalleryIntent());
+        }
+        if (btnValClearPhotos != null) {
+            btnValClearPhotos.setOnClickListener(v -> clearCapturedPhotos());
+        }
+
 
         if (btnValTriggerRfid != null) {
             btnValTriggerRfid.setOnClickListener(v -> triggerSampleRfidScan());
@@ -878,11 +916,31 @@ public class MainActivity extends Activity {
             layoutValWoCaptured.setVisibility(View.GONE);
         }
 
-        // Queue Button State
-        if (count == 3) {
-            btnValQueue.setText("✓ Queue & Commit to DB");
+        // Step 4: Photo Badge UI
+        int photoCount = capturedBitmaps.size();
+        if (photoCount > 0) {
+            if (tvValBadgePhotos != null) {
+                tvValBadgePhotos.setText("✓ " + photoCount + "/8 ATTACHED");
+                tvValBadgePhotos.setTextColor(getResources().getColor(R.color.status_green));
+                tvValBadgePhotos.setBackgroundResource(R.drawable.bg_pill_green);
+            }
+        } else {
+            if (tvValBadgePhotos != null) {
+                tvValBadgePhotos.setText("0/8 (1 REQUIRED)");
+                tvValBadgePhotos.setTextColor(getResources().getColor(R.color.brand_red));
+                tvValBadgePhotos.setBackgroundResource(R.drawable.bg_pill_red);
+            }
+        }
+
+        // Queue Button State: Requires all 3 items AND at least 1 inspection photo
+        if (count == 3 && photoCount >= 1) {
+            btnValQueue.setText("✓ Queue & Commit (" + photoCount + " Photo" + (photoCount > 1 ? "s" : "") + ")");
             btnValQueue.setEnabled(true);
             btnValQueue.setBackgroundResource(R.drawable.bg_btn_queue_enabled);
+        } else if (count == 3 && photoCount == 0) {
+            btnValQueue.setText("Queue (Photo Required: 0/1)");
+            btnValQueue.setEnabled(false);
+            btnValQueue.setBackgroundResource(R.drawable.bg_btn_queue_disabled);
         } else {
             btnValQueue.setText("Queue (" + count + "/3 Scanned)");
             btnValQueue.setEnabled(false);
@@ -916,6 +974,7 @@ public class MainActivity extends Activity {
 
         mValWorkOrder = "";
         mValWorkOrderCaptured = false;
+        clearCapturedPhotos();
 
         updateValidationUiState();
         appendLog("[VALIDATION] Validation slots cleared (0/3).");
@@ -937,8 +996,8 @@ public class MainActivity extends Activity {
      * Commits married 3-point transaction to SQLite database.
      */
     private void performQueueTransaction() {
-        if (getCapturedCount() < 3) {
-            Toast.makeText(this, "Please verify all 3 items before queuing!", Toast.LENGTH_SHORT).show();
+        if (getCapturedCount() < 3 || capturedBitmaps.isEmpty()) {
+            Toast.makeText(this, "Please verify all 3 items and attach at least 1 photo!", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -959,6 +1018,16 @@ public class MainActivity extends Activity {
                 payload.put("work_order_no", wo);
                 payload.put("scanner_device", devName);
                 payload.put("device_name", devName);
+
+                // Add compressed Base64 images
+                JSONArray imagesArray = new JSONArray();
+                for (Bitmap bmp : capturedBitmaps) {
+                    String b64 = compressBitmapToBase64(bmp);
+                    if (b64 != null && !b64.isEmpty()) {
+                        imagesArray.put("data:image/jpeg;base64," + b64);
+                    }
+                }
+                payload.put("images", imagesArray);
                 payload.put("device_id", devId);
                 payload.put("operator_role", "Operator");
                 payload.put("status_id", "wip");
@@ -1026,6 +1095,16 @@ public class MainActivity extends Activity {
                 payload.put("work_order_no", wo);
                 payload.put("scanner_device", devName);
                 payload.put("device_name", devName);
+
+                // Add compressed Base64 images
+                JSONArray imagesArray = new JSONArray();
+                for (Bitmap bmp : capturedBitmaps) {
+                    String b64 = compressBitmapToBase64(bmp);
+                    if (b64 != null && !b64.isEmpty()) {
+                        imagesArray.put("data:image/jpeg;base64," + b64);
+                    }
+                }
+                payload.put("images", imagesArray);
                 payload.put("device_id", devId);
 
                 String endpoint = getBaseUrl() + "/api/post_scan";
@@ -2219,6 +2298,177 @@ public class MainActivity extends Activity {
         }
         if (obj instanceof CharSequence) return obj.toString().trim();
         return null;
+    }
+
+
+    // =========================================================================
+    // STEP 4: INSPECTION PHOTO GALLERY UPLOAD & COMPRESSION HELPERS
+    // =========================================================================
+    private void dispatchPickImagesFromGalleryIntent() {
+        if (capturedBitmaps.size() >= 8) {
+            Toast.makeText(this, "Maximum 8 photos reached!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            startActivityForResult(Intent.createChooser(intent, "Select Inspection Photos (1 to 8)"), REQUEST_GALLERY_IMAGES);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to launch gallery picker", e);
+            Toast.makeText(this, "Failed to open gallery: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode != RESULT_OK || data == null) return;
+
+        if (requestCode == REQUEST_GALLERY_IMAGES) {
+            int addedCount = 0;
+            if (data.getClipData() != null) {
+                ClipData clipData = data.getClipData();
+                int count = clipData.getItemCount();
+                for (int i = 0; i < count; i++) {
+                    if (capturedBitmaps.size() >= 8) {
+                        Toast.makeText(this, "Maximum 8 photos limit reached!", Toast.LENGTH_SHORT).show();
+                        break;
+                    }
+                    Uri uri = clipData.getItemAt(i).getUri();
+                    Bitmap bmp = loadBitmapFromUri(uri);
+                    if (bmp != null) {
+                        capturedBitmaps.add(bmp);
+                        addedCount++;
+                    }
+                }
+            } else if (data.getData() != null) {
+                if (capturedBitmaps.size() < 8) {
+                    Uri uri = data.getData();
+                    Bitmap bmp = loadBitmapFromUri(uri);
+                    if (bmp != null) {
+                        capturedBitmaps.add(bmp);
+                        addedCount++;
+                    }
+                } else {
+                    Toast.makeText(this, "Maximum 8 photos allowed", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            if (addedCount > 0) {
+                updatePhotoThumbnailsUi();
+                updateValidationUiState();
+                Toast.makeText(this, "Added " + addedCount + " photo(s) from Gallery (" + capturedBitmaps.size() + "/8)", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private Bitmap loadBitmapFromUri(Uri uri) {
+        if (uri == null) return null;
+        try {
+            InputStream is = getContentResolver().openInputStream(uri);
+            if (is == null) return null;
+
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            BitmapFactory.decodeStream(is, null, options);
+            is.close();
+
+            int maxDimension = 1280;
+            int inSampleSize = 1;
+            if (options.outHeight > maxDimension || options.outWidth > maxDimension) {
+                final int halfHeight = options.outHeight / 2;
+                final int halfWidth = options.outWidth / 2;
+                while ((halfHeight / inSampleSize) >= maxDimension && (halfWidth / inSampleSize) >= maxDimension) {
+                    inSampleSize *= 2;
+                }
+            }
+
+            BitmapFactory.Options decodeOptions = new BitmapFactory.Options();
+            decodeOptions.inSampleSize = inSampleSize;
+            is = getContentResolver().openInputStream(uri);
+            Bitmap bmp = BitmapFactory.decodeStream(is, null, decodeOptions);
+            if (is != null) is.close();
+            return bmp;
+        } catch (Exception e) {
+            Log.e(TAG, "Error decoding image from uri: " + uri, e);
+            return null;
+        }
+    }
+
+    private void clearCapturedPhotos() {
+        capturedBitmaps.clear();
+        updatePhotoThumbnailsUi();
+        updateValidationUiState();
+    }
+
+    private void updatePhotoThumbnailsUi() {
+        if (layoutValPhotoThumbnailsContainer == null) return;
+        layoutValPhotoThumbnailsContainer.removeAllViews();
+
+        int dp64 = (int) (64 * getResources().getDisplayMetrics().density);
+        int dp8 = (int) (8 * getResources().getDisplayMetrics().density);
+
+        for (int i = 0; i < capturedBitmaps.size(); i++) {
+            final int index = i;
+            Bitmap bmp = capturedBitmaps.get(i);
+
+            FrameLayout frameLayout = new FrameLayout(this);
+            LinearLayout.LayoutParams frameParams = new LinearLayout.LayoutParams(dp64, dp64);
+            frameParams.setMargins(0, 0, dp8, 0);
+            frameLayout.setLayoutParams(frameParams);
+
+            ImageView iv = new ImageView(this);
+            FrameLayout.LayoutParams ivParams = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+            iv.setLayoutParams(ivParams);
+            iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            iv.setImageBitmap(bmp);
+            iv.setBackgroundResource(R.drawable.bg_card);
+
+            // Close / Delete badge button
+            TextView btnRemove = new TextView(this);
+            FrameLayout.LayoutParams btnParams = new FrameLayout.LayoutParams(
+                    (int) (20 * getResources().getDisplayMetrics().density),
+                    (int) (20 * getResources().getDisplayMetrics().density)
+            );
+            btnParams.gravity = android.view.Gravity.TOP | android.view.Gravity.END;
+            btnRemove.setLayoutParams(btnParams);
+            btnRemove.setText("✕");
+            btnRemove.setTextColor(Color.WHITE);
+            btnRemove.setTextSize(10);
+            btnRemove.setGravity(android.view.Gravity.CENTER);
+            btnRemove.setBackgroundResource(R.drawable.bg_pill_red);
+            btnRemove.setOnClickListener(v -> {
+                if (index < capturedBitmaps.size()) {
+                    capturedBitmaps.remove(index);
+                    updatePhotoThumbnailsUi();
+                    updateValidationUiState();
+                }
+            });
+
+            frameLayout.addView(iv);
+            frameLayout.addView(btnRemove);
+            layoutValPhotoThumbnailsContainer.addView(frameLayout);
+        }
+    }
+
+    public static String compressBitmapToBase64(Bitmap bitmap) {
+        if (bitmap == null) return null;
+        int maxDimension = 1280;
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        if (width > maxDimension || height > maxDimension) {
+            float ratio = Math.min((float) maxDimension / width, (float) maxDimension / height);
+            width = Math.round(width * ratio);
+            height = Math.round(height * ratio);
+            bitmap = Bitmap.createScaledBitmap(bitmap, width, height, true);
+        }
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 75, outputStream);
+        byte[] byteArray = outputStream.toByteArray();
+        return Base64.encodeToString(byteArray, Base64.NO_WRAP);
     }
 
     // =========================================================================

@@ -1025,7 +1025,110 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- CARD 4: LIVE SCANNER CONTROLS & QUEUE -->
+                <!-- CARD 4: STEP 4 - INSPECTION / QA PHOTOS (1 to 8 Images) -->
+                <LinearLayout
+                    android:id="@+id/layout_card_photos"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card"
+                    android:padding="12dp"
+                    android:layout_marginBottom="10dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_validation"
+                            android:tint="@color/brand_red"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="4.INSPECTION PHOTOS (1-8)"
+                            android:textColor="@color/navy_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_val_badge_photos"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0/8 (1 REQUIRED)"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/brand_red"
+                            android:background="@drawable/bg_pill_red"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="3dp" />
+                    </LinearLayout>
+
+                    <!-- Buttons: Gallery Multi-Select & Clear -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <Button
+                            android:id="@+id/btn_val_gallery_photo"
+                            android:layout_width="0dp"
+                            android:layout_height="38dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_btn_primary"
+                            android:text="📁 Upload from Gallery (Multi-Select)"
+                            android:textColor="@color/white"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:layout_marginEnd="6dp" />
+
+                        <Button
+                            android:id="@+id/btn_val_clear_photos"
+                            android:layout_width="wrap_content"
+                            android:layout_height="38dp"
+                            android:background="@drawable/bg_btn_secondary"
+                            android:text="Clear"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp"
+                            android:paddingHorizontal="12dp" />
+                    </LinearLayout>
+
+                    <!-- Horizontal Scroll View for captured photo thumbnails -->
+                    <HorizontalScrollView
+                        android:id="@+id/scroll_val_photo_thumbnails"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:scrollbars="none"
+                        android:fillViewport="true">
+
+                        <LinearLayout
+                            android:id="@+id/layout_val_photo_thumbnails_container"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical" />
+                    </HorizontalScrollView>
+
+                    <TextView
+                        android:id="@+id/tv_val_photos_hint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="* Attach 1 to 8 inspection photos to enable transaction queuing."
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+                <!-- CARD 5: LIVE SCANNER CONTROLS & QUEUE -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
