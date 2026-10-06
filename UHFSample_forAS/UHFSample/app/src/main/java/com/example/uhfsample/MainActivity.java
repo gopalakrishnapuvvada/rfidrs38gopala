@@ -424,9 +424,10 @@ public class MainActivity extends Activity {
                 ipInput = DEFAULT_SERVER_IP;
             }
             // Strip scheme if operator typed it
-            ipInput = ipInput.replace("http://", "").replace("https://", "");
-            while (ipInput.endsWith("/")) {
-                ipInput = ipInput.substring(0, ipInput.length() - 1);
+            ipInput = ipInput.replace("http://", "").replace("https://", "").trim();
+            // If operator typed endpoint path like 192.168.88.x:8000/post_scan, strip the path
+            if (ipInput.contains("/")) {
+                ipInput = ipInput.substring(0, ipInput.indexOf("/")).trim();
             }
             if (!ipInput.contains(":")) {
                 ipInput = ipInput + ":8000";
@@ -452,9 +453,10 @@ public class MainActivity extends Activity {
         if (ip.isEmpty() || ip.contains("192.168.88.9")) {
             ip = DEFAULT_SERVER_IP;
         }
-        ip = ip.replace("http://", "").replace("https://", "");
-        while (ip.endsWith("/")) {
-            ip = ip.substring(0, ip.length() - 1);
+        ip = ip.replace("http://", "").replace("https://", "").trim();
+        // Automatically remove any trailing paths like /post_scan or /api if entered by operator
+        if (ip.contains("/")) {
+            ip = ip.substring(0, ip.indexOf("/")).trim();
         }
         if (!ip.contains(":")) {
             ip = ip + ":8000";
