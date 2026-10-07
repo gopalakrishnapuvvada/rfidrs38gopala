@@ -293,7 +293,8 @@
                 android:layout_height="wrap_content"
                 android:text="Package: Rolled Vacuum Box"
                 android:textSize="11sp"
-                android:textColor="@color/text_secondary" />
+                android:textColor="@color/text_secondary"
+                android:visibility="gone" />
         </LinearLayout>
 
         <!-- WORK ORDER SECTION -->
@@ -323,6 +324,129 @@
                 android:typeface="monospace"
                 android:textStyle="bold"
                 android:textColor="@color/navy_primary" />
+        </LinearLayout>
+
+        <!-- CAPTURED INSPECTION PHOTOS SECTION -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="6dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="CAPTURED INSPECTION PHOTOS"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_secondary" />
+
+            <TextView
+                android:id="@+id/dialog_tv_captured_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 PHOTOS"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary_blue"
+                android:background="@drawable/bg_pill_blue"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/dialog_layout_captured_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_scan_area_captured"
+            android:padding="12dp"
+            android:layout_marginBottom="14dp">
+
+            <!-- Swipable Image Gallery for Captured Photos -->
+            <FrameLayout
+                android:id="@+id/dialog_layout_captured_gallery"
+                android:layout_width="match_parent"
+                android:layout_height="160dp"
+                android:background="@drawable/bg_scan_area_empty"
+                android:layout_marginBottom="10dp">
+
+                <ImageView
+                    android:id="@+id/dialog_img_captured"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_image_placeholder"
+                    android:contentDescription="Captured Inspection Photo" />
+
+                <TextView
+                    android:id="@+id/dialog_tv_captured_angle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="6dp"
+                    android:background="@drawable/bg_angle_badge"
+                    android:text="PHOTO 1/1"
+                    android:textColor="@color/white"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/dialog_btn_captured_prev"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center_vertical|start"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_arrow_btn"
+                    android:text="◀"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:padding="0dp" />
+
+                <Button
+                    android:id="@+id/dialog_btn_captured_next"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center_vertical|end"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/bg_arrow_btn"
+                    android:text="▶"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:padding="0dp" />
+            </FrameLayout>
+
+            <!-- Horizontal Thumbnails Strip -->
+            <HorizontalScrollView
+                android:id="@+id/dialog_scroll_captured_thumbnails"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:layout_marginBottom="2dp">
+
+                <LinearLayout
+                    android:id="@+id/dialog_layout_captured_thumbnails"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
+
+            <!-- Empty State Notice (shown if 0 photos) -->
+            <TextView
+                android:id="@+id/dialog_tv_captured_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No inspection photos captured for this transaction."
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:paddingVertical="14dp"
+                android:visibility="gone" />
+
         </LinearLayout>
 
         <!-- SCANNER / DEVICE SECTION -->

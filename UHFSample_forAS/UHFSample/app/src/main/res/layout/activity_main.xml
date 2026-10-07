@@ -18,37 +18,20 @@
         android:paddingHorizontal="16dp"
         android:elevation="2dp">
 
-        <!-- Left: Hamburger Menu Button -->
-        <FrameLayout
-            android:id="@+id/header_btn_menu"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:clickable="true"
-            android:focusable="true">
-
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:layout_gravity="center"
-                android:src="@drawable/ic_menu" />
-        </FrameLayout>
-
         <!-- Brand Logo -->
         <ImageView
             android:id="@+id/header_logo"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:layout_marginStart="6dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="8dp"
             android:src="@drawable/uaim_logo"
-            android:contentDescription="UAIM Logo" />
+            android:contentDescription="Brand Logo" />
 
         <!-- Center: Dynamic Title & Subtitle -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="8dp"
             android:orientation="vertical">
 
             <TextView
@@ -66,22 +49,21 @@
                 android:id="@+id/header_tv_subtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="UAIM Finished Goods Label &amp; RFID System"
+                android:text="FG Scanner &amp; RFID System"
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp"
                 android:maxLines="1"
                 android:ellipsize="end" />
         </LinearLayout>
 
-        <!-- Right: Notifications + User Avatar -->
+        <!-- Right: Notifications / Status Button -->
         <FrameLayout
             android:id="@+id/header_btn_notifications"
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:clickable="true"
-            android:focusable="true"
-            android:layout_marginEnd="4dp">
+            android:focusable="true">
 
             <ImageView
                 android:layout_width="20dp"
@@ -98,18 +80,6 @@
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/bg_pill_green" />
         </FrameLayout>
-
-        <!-- User Avatar (SA) -->
-        <TextView
-            android:id="@+id/header_avatar"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/bg_avatar_circle"
-            android:gravity="center"
-            android:text="SA"
-            android:textColor="@color/white"
-            android:textSize="11sp"
-            android:textStyle="bold" />
     </LinearLayout>
 
     <!-- Header Divider Line -->
@@ -578,26 +548,6 @@
                                 android:textSize="11sp" />
                         </LinearLayout>
                     </LinearLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Protocol: EPC Gen2 / ISO 18000-6C (UHF 865.7 MHz)"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="10sp"
-                        android:layout_marginTop="4dp" />
-
-                    <!-- Trigger RFID sample button -->
-                    <Button
-                        android:id="@+id/btn_val_trigger_rfid"
-                        android:layout_width="match_parent"
-                        android:layout_height="40dp"
-                        android:text="⚡ Trigger RFID (Sample)"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/primary_blue_accent"
-                        android:background="@drawable/bg_btn_secondary"
-                        android:layout_marginTop="8dp" />
                 </LinearLayout>
 
                 <!-- CARD 2: STEP 2 - MATERIAL CODE / CONFIGURED FG MASTER DATA -->
@@ -864,23 +814,6 @@
                                     android:text="Red"
                                     android:textColor="@color/navy_primary"
                                     android:textSize="11sp"
-                                    android:textStyle="bold"
-                                    android:layout_marginBottom="6dp" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Package Type:"
-                                    android:textColor="@color/text_secondary"
-                                    android:textSize="10sp" />
-
-                                <TextView
-                                    android:id="@+id/tv_val_spec_pkg"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Rolled Vacuum Box"
-                                    android:textColor="@color/navy_primary"
-                                    android:textSize="11sp"
                                     android:textStyle="bold" />
                             </LinearLayout>
 
@@ -904,23 +837,6 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="Dual Comfort Foam"
-                                    android:textColor="@color/navy_primary"
-                                    android:textSize="11sp"
-                                    android:textStyle="bold"
-                                    android:layout_marginBottom="6dp" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Net / Gross Weight:"
-                                    android:textColor="@color/text_secondary"
-                                    android:textSize="10sp" />
-
-                                <TextView
-                                    android:id="@+id/tv_val_spec_weight"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="0 kg / 0 kg"
                                     android:textColor="@color/navy_primary"
                                     android:textSize="11sp"
                                     android:textStyle="bold"
@@ -1199,7 +1115,7 @@
                             android:layout_height="wrap_content"
                             android:minHeight="46dp"
                             android:layout_weight="1.3"
-                            android:text="✓ Queue (0/3 Scanned)"
+                            android:text="Commit (0/3 Scanned)"
                             android:textSize="12sp"
                             android:textStyle="bold"
                             android:textColor="@color/white"
@@ -1327,7 +1243,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="UAIM Finished Goods Label Generation &amp; Auto-ID System"
+                    android:text="FG Scanner • Finished Goods Auto-ID System"
                     android:textColor="@color/text_secondary"
                     android:textSize="11sp"
                     android:gravity="center" />

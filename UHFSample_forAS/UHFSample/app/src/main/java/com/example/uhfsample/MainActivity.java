@@ -145,7 +145,7 @@ public class MainActivity extends Activity {
     // =========================================================================
     // Global Header
     private TextView tvHeaderTitle, tvHeaderSubtitle;
-    private View btnHeaderMenu, btnHeaderNotifications;
+    private View btnHeaderNotifications;
 
     // Server IP Bar
     private EditText edtServerIp;
@@ -167,7 +167,6 @@ public class MainActivity extends Activity {
     private TextView tvValStatusPill, tvValDevicePill;
     private TextView tvValBadgeRfid, tvValRfidEmpty, tvValRfidEpc, tvValRfidTid, tvValRfidRssi;
     private View layoutValRfidCaptured;
-    private Button btnValTriggerRfid;
     private TextView tvValBadgeMaterial, tvValMaterialCode, tvValMatName, tvValPartNo;
     private View layoutValMaterialEmpty, layoutValMaterialCaptured;
     private FrameLayout layoutValFgGallery;
@@ -175,7 +174,7 @@ public class MainActivity extends Activity {
     private TextView tvValImgAngle;
     private Button btnValImgPrev, btnValImgNext;
     private TextView tvValCatBadge, tvValStatusBadge;
-    private TextView tvValSpecDim, tvValSpecColor, tvValSpecPkg, tvValSpecModel, tvValSpecWeight, tvValSpecStatus;
+    private TextView tvValSpecDim, tvValSpecColor, tvValSpecModel, tvValSpecStatus;
     private TextView tvValBadgeWo, tvValWoEmpty, tvValWoCode;
     private View layoutValWoCaptured;
     private TextView tvValLiveTitle, tvValLiveDevice;
@@ -309,7 +308,6 @@ public class MainActivity extends Activity {
         // Global Header
         tvHeaderTitle = findViewById(R.id.header_tv_title);
         tvHeaderSubtitle = findViewById(R.id.header_tv_subtitle);
-        btnHeaderMenu = findViewById(R.id.header_btn_menu);
         btnHeaderNotifications = findViewById(R.id.header_btn_notifications);
 
         // Server IP Bar
@@ -352,7 +350,6 @@ public class MainActivity extends Activity {
         tvValRfidEpc = findViewById(R.id.tv_val_rfid_epc);
         tvValRfidTid = findViewById(R.id.tv_val_rfid_tid);
         tvValRfidRssi = findViewById(R.id.tv_val_rfid_rssi);
-        btnValTriggerRfid = findViewById(R.id.btn_val_trigger_rfid);
 
         tvValBadgeMaterial = findViewById(R.id.tv_val_badge_material);
         layoutValMaterialEmpty = findViewById(R.id.layout_val_material_empty);
@@ -370,9 +367,7 @@ public class MainActivity extends Activity {
         tvValPartNo = findViewById(R.id.tv_val_part_no);
         tvValSpecDim = findViewById(R.id.tv_val_spec_dim);
         tvValSpecColor = findViewById(R.id.tv_val_spec_color);
-        tvValSpecPkg = findViewById(R.id.tv_val_spec_pkg);
         tvValSpecModel = findViewById(R.id.tv_val_spec_model);
-        tvValSpecWeight = findViewById(R.id.tv_val_spec_weight);
         tvValSpecStatus = findViewById(R.id.tv_val_spec_status);
 
         tvValBadgeWo = findViewById(R.id.tv_val_badge_wo);
@@ -611,11 +606,6 @@ public class MainActivity extends Activity {
             btnValClearPhotos.setOnClickListener(v -> clearCapturedPhotos());
         }
 
-
-        if (btnValTriggerRfid != null) {
-            btnValTriggerRfid.setOnClickListener(v -> triggerSampleRfidScan());
-        }
-
         if (btnValImgPrev != null) {
             btnValImgPrev.setOnClickListener(v -> {
                 if (mValFgImages != null && mValFgImages.size() > 1) {
@@ -724,7 +714,7 @@ public class MainActivity extends Activity {
         mValPartNumber = item.optString("partNumber", "FG-" + mValMaterialCode);
         mValCategory = item.optString("category", "Mattress");
         mValColour = item.optString("colour", item.optString("color", "Red"));
-        mValFgStatus = item.optString("status", "Active");
+        mValFgStatus = item.optString("status", item.optString("status_id", item.optString("status_name", "Active")));
         mValPackageType = item.optString("packageType", "Rolled Vacuum Box");
 
         JSONObject dim = item.optJSONObject("dimensions");
@@ -758,6 +748,22 @@ public class MainActivity extends Activity {
         mValFgImageIndex = 0;
 
         updateValidationUiState();
+
+        boolean isInactive = mValFgStatus != null && !mValFgStatus.trim().equalsIgnoreCase("active");
+        if (isInactive) {
+            appendLog("[MATERIAL STATUS] ⚠️ Scanned Material Code is INACTIVE: " + mValMaterialCode);
+            showInactiveMaterialDialog(mValMaterialCode);
+        }
+    }
+
+    private void showInactiveMaterialDialog(final String materialCode) {
+        new AlertDialog.Builder(MainActivity.this)
+            .setTitle("⚠️ Inactive Material Code")
+            .setMessage("The scanned material code '" + materialCode + "' is inactive.\n\nTransactions cannot be committed for inactive material codes.")
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+            .setCancelable(false)
+            .show();
     }
 
     public void applyCustomMaterialCode(String code) {
@@ -877,22 +883,43 @@ public class MainActivity extends Activity {
 
         // Step 2: Material Code Card UI
         if (mValMaterialCaptured) {
-            tvValBadgeMaterial.setText("✓ MATERIAL CAPTURED");
-            tvValBadgeMaterial.setTextColor(getResources().getColor(R.color.status_green));
-            tvValBadgeMaterial.setBackgroundResource(R.drawable.bg_badge_captured);
+            boolean isInactive = mValFgStatus != null && !mValFgStatus.trim().equalsIgnoreCase("active");
+            if (isInactive) {
+                tvValBadgeMaterial.setText("✕ MATERIAL INACTIVE");
+                tvValBadgeMaterial.setTextColor(getResources().getColor(R.color.brand_red));
+                tvValBadgeMaterial.setBackgroundResource(R.drawable.bg_badge_awaiting);
+            } else {
+                tvValBadgeMaterial.setText("✓ MATERIAL CAPTURED");
+                tvValBadgeMaterial.setTextColor(getResources().getColor(R.color.status_green));
+                tvValBadgeMaterial.setBackgroundResource(R.drawable.bg_badge_captured);
+            }
             layoutValMaterialEmpty.setVisibility(View.GONE);
             layoutValMaterialCaptured.setVisibility(View.VISIBLE);
             tvValMaterialCode.setText(mValMaterialCode);
             tvValMatName.setText(mValProductName);
             if (tvValPartNo != null) tvValPartNo.setText("Part No: " + mValPartNumber);
             if (tvValCatBadge != null) tvValCatBadge.setText(mValCategory.toUpperCase(Locale.US));
-            if (tvValStatusBadge != null) tvValStatusBadge.setText(mValFgStatus.toUpperCase(Locale.US));
+            if (tvValStatusBadge != null) {
+                tvValStatusBadge.setText(mValFgStatus.toUpperCase(Locale.US));
+                if (isInactive) {
+                    tvValStatusBadge.setTextColor(getResources().getColor(R.color.brand_red));
+                    tvValStatusBadge.setBackgroundResource(R.drawable.bg_pill_red);
+                } else {
+                    tvValStatusBadge.setTextColor(getResources().getColor(R.color.status_green));
+                    tvValStatusBadge.setBackgroundResource(R.drawable.bg_pill_green);
+                }
+            }
             if (tvValSpecDim != null) tvValSpecDim.setText(mValDimensions);
             if (tvValSpecColor != null) tvValSpecColor.setText(mValColour);
-            if (tvValSpecPkg != null) tvValSpecPkg.setText(mValPackageType);
             if (tvValSpecModel != null) tvValSpecModel.setText(mValModel);
-            if (tvValSpecWeight != null) tvValSpecWeight.setText(mValWeight);
-            if (tvValSpecStatus != null) tvValSpecStatus.setText(mValFgStatus);
+            if (tvValSpecStatus != null) {
+                tvValSpecStatus.setText(mValFgStatus);
+                if (isInactive) {
+                    tvValSpecStatus.setTextColor(getResources().getColor(R.color.brand_red));
+                } else {
+                    tvValSpecStatus.setTextColor(getResources().getColor(R.color.status_green));
+                }
+            }
             updateFgGalleryUi();
         } else {
             tvValBadgeMaterial.setText("⌛ AWAITING MATERIAL SCAN");
@@ -934,17 +961,22 @@ public class MainActivity extends Activity {
             }
         }
 
-        // Queue Button State: Requires all 3 items AND at least 1 inspection photo
-        if (count == 3 && photoCount >= 1) {
-            btnValQueue.setText("✓ Queue & Commit (" + photoCount + " Photo" + (photoCount > 1 ? "s" : "") + ")");
+        // Commit Button State: Requires all 3 items AND at least 1 inspection photo AND active material code
+        boolean isMaterialActive = mValFgStatus == null || mValFgStatus.trim().equalsIgnoreCase("active");
+        if (mValMaterialCaptured && !isMaterialActive) {
+            btnValQueue.setText("Commit Blocked (Material Inactive)");
+            btnValQueue.setEnabled(false);
+            btnValQueue.setBackgroundResource(R.drawable.bg_btn_queue_disabled);
+        } else if (count == 3 && photoCount >= 1) {
+            btnValQueue.setText("Commit");
             btnValQueue.setEnabled(true);
             btnValQueue.setBackgroundResource(R.drawable.bg_btn_queue_enabled);
         } else if (count == 3 && photoCount == 0) {
-            btnValQueue.setText("Queue (Photo Required: 0/1)");
+            btnValQueue.setText("Commit (Photo Required)");
             btnValQueue.setEnabled(false);
             btnValQueue.setBackgroundResource(R.drawable.bg_btn_queue_disabled);
         } else {
-            btnValQueue.setText("Queue (" + count + "/3 Scanned)");
+            btnValQueue.setText("Commit (" + count + "/3 Scanned)");
             btnValQueue.setEnabled(false);
             btnValQueue.setBackgroundResource(R.drawable.bg_btn_queue_disabled);
         }
@@ -1003,6 +1035,13 @@ public class MainActivity extends Activity {
             return;
         }
 
+        boolean isMaterialActive = mValFgStatus == null || mValFgStatus.trim().equalsIgnoreCase("active");
+        if (mValMaterialCaptured && !isMaterialActive) {
+            Toast.makeText(this, "Cannot commit: Material code '" + mValMaterialCode + "' is inactive!", Toast.LENGTH_LONG).show();
+            showInactiveMaterialDialog(mValMaterialCode);
+            return;
+        }
+
         final String rfid = mValRfidEpc;
         final String mat = mValMaterialCode;
         final String wo = mValWorkOrder;
@@ -1010,7 +1049,7 @@ public class MainActivity extends Activity {
         final String devName = getDeviceName();
 
         btnValQueue.setEnabled(false);
-        btnValQueue.setText("Committing to SQLite...");
+        btnValQueue.setText("Committing...");
 
         networkExecutor.execute(() -> {
             try {
@@ -1046,8 +1085,8 @@ public class MainActivity extends Activity {
                             assignedTxn = resObj.optString("transaction_id", assignedTxn);
                         } catch (Exception ignored) {}
 
-                        Toast.makeText(MainActivity.this, "✓ Transaction Queued: " + assignedTxn, Toast.LENGTH_LONG).show();
-                        appendLog("[QUEUE SUCCESS] Married " + rfid + " ⮀ " + mat + " ⮀ " + wo + " [Device: " + devName + "]");
+                        Toast.makeText(MainActivity.this, "✓ Transaction Committed: " + assignedTxn, Toast.LENGTH_LONG).show();
+                        appendLog("[COMMIT SUCCESS] Married " + rfid + " ⮀ " + mat + " ⮀ " + wo + " [Device: " + devName + "]");
 
                         // Reset validation workflow for next item
                         performCancelScan();
@@ -1056,13 +1095,15 @@ public class MainActivity extends Activity {
                         fetchWipTransactionsFromServer("");
 
                     } else if (result.statusCode == 409) {
+                        updateValidationUiState();
                         String detail = extractErrorDetail(result.body);
                         showConflictDialog("⚠️ Duplicate Rejection", detail);
-                        appendLog("[QUEUE CONFLICT] " + detail);
+                        appendLog("[COMMIT CONFLICT] " + detail);
                     } else {
+                        updateValidationUiState();
                         String detail = extractErrorDetail(result.body);
                         showConflictDialog("✕ Rejection Error (HTTP " + result.statusCode + ")", detail);
-                        appendLog("[QUEUE ERROR] " + detail);
+                        appendLog("[COMMIT ERROR] " + detail);
                     }
                 });
 
@@ -1070,9 +1111,9 @@ public class MainActivity extends Activity {
                 final String err = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
                 mainHandler.post(() -> {
                     btnValQueue.setEnabled(true);
-                    btnValQueue.setText("✓ Queue & Commit to DB");
+                    updateValidationUiState();
                     Toast.makeText(MainActivity.this, "Network error: " + err, Toast.LENGTH_LONG).show();
-                    appendLog("[QUEUE NET ERROR] " + err);
+                    appendLog("[COMMIT NET ERROR] " + err);
                 });
             }
         });
@@ -1193,24 +1234,73 @@ public class MainActivity extends Activity {
                                 String status = obj.optString("status", obj.optString("status_id", "WIP"));
                                 String created = obj.optString("created_on", obj.optString("createdOn", obj.optString("timestamp", "")));
 
-                                String part = obj.optString("part_number", obj.optString("partNumber", "FG-" + mat));
+                                String part = obj.optString("part_number", obj.optString("partNumber", ""));
+                                if (part.isEmpty() || part.equalsIgnoreCase("FG-") || part.equalsIgnoreCase("FG-" + mat)) {
+                                    String pNum = obj.optString("partNumber", "");
+                                    if (!pNum.isEmpty()) part = pNum;
+                                    else if (!mat.isEmpty()) part = "FG-" + mat;
+                                }
                                 String cat = obj.optString("category", obj.optString("categoryId", "Mattress"));
                                 String model = obj.optString("model", "Dual Comfort Foam");
-                                String dim = obj.optString("dimensions_str", obj.optString("dimensionsStr", "0 x 0 x 0 mm"));
-                                String colour = obj.optString("colour", obj.optString("color", "Red"));
-                                String prodImg = obj.optString("product_image", obj.optString("productImage", obj.optString("fg_image", obj.optString("fgImage", "/products/mattress_1.jpg"))));
 
-                                List<String> fgImages = new ArrayList<>();
-                                JSONArray imgsArr = obj.optJSONArray("fg_images");
-                                if (imgsArr == null) imgsArr = obj.optJSONArray("fgImages");
-                                if (imgsArr != null) {
-                                    for (int j = 0; j < imgsArr.length(); j++) {
-                                        String u = imgsArr.optString(j, "").trim();
-                                        if (!u.isEmpty()) fgImages.add(u);
+                                // Dimensions Extraction (Length, Width, Height)
+                                String dim = obj.optString("dimensions_str", obj.optString("dimensionsStr", ""));
+                                int lenMm = obj.optInt("lengthMm", obj.optInt("length_mm", 0));
+                                int widMm = obj.optInt("widthMm", obj.optInt("width_mm", 0));
+                                int hgtMm = obj.optInt("heightMm", obj.optInt("height_mm", 0));
+                                JSONObject dimObj = obj.optJSONObject("dimensions");
+                                if (dimObj != null) {
+                                    if (lenMm == 0) lenMm = dimObj.optInt("lengthMm", dimObj.optInt("length_mm", 0));
+                                    if (widMm == 0) widMm = dimObj.optInt("widthMm", dimObj.optInt("width_mm", 0));
+                                    if (hgtMm == 0) hgtMm = dimObj.optInt("heightMm", dimObj.optInt("height_mm", 0));
+                                }
+                                if ((dim.isEmpty() || dim.equals("0 x 0 x 0 mm")) && (lenMm > 0 || widMm > 0 || hgtMm > 0)) {
+                                    dim = lenMm + " x " + widMm + " x " + hgtMm + " mm";
+                                }
+                                if (dim.isEmpty()) dim = "0 x 0 x 0 mm";
+
+                                // Color Extraction
+                                String colour = obj.optString("colour", obj.optString("color", ""));
+                                if (colour.isEmpty()) {
+                                    colour = obj.optString("colorVariant", obj.optString("color_variant", "Red"));
+                                }
+
+                                String prodImg = obj.optString("product_image", obj.optString("productImage", obj.optString("fg_image", obj.optString("fgImage", ""))));
+
+                                List<String> masterImages = new ArrayList<>();
+
+                                // 1. Master Data Images (Material Code related images)
+                                JSONArray masterArr = obj.optJSONArray("master_images");
+                                if (masterArr == null) masterArr = obj.optJSONArray("masterImages");
+                                if (masterArr == null) masterArr = obj.optJSONArray("fg_images");
+                                if (masterArr == null) masterArr = obj.optJSONArray("fgImages");
+                                if (masterArr == null) masterArr = obj.optJSONArray("images");
+                                if (masterArr != null) {
+                                    for (int j = 0; j < masterArr.length(); j++) {
+                                        String u = masterArr.optString(j, "").trim();
+                                        if (!u.isEmpty() && !masterImages.contains(u)) {
+                                            masterImages.add(u);
+                                        }
                                     }
                                 }
-                                if (fgImages.isEmpty() && !prodImg.isEmpty()) {
-                                    fgImages.add(prodImg);
+
+                                if (!prodImg.isEmpty() && !masterImages.contains(prodImg)) {
+                                    masterImages.add(prodImg);
+                                }
+
+                                // 2. Uploaded Inspection Images (SEPARATE from master images)
+                                List<String> capturedImages = new ArrayList<>();
+                                JSONArray uploadedArr = obj.optJSONArray("image_urls");
+                                if (uploadedArr == null) uploadedArr = obj.optJSONArray("imageUrls");
+                                if (uploadedArr == null) uploadedArr = obj.optJSONArray("image_paths");
+                                if (uploadedArr == null) uploadedArr = obj.optJSONArray("imagePaths");
+                                if (uploadedArr != null) {
+                                    for (int j = 0; j < uploadedArr.length(); j++) {
+                                        String u = uploadedArr.optString(j, "").trim();
+                                        if (!u.isEmpty() && !capturedImages.contains(u)) {
+                                            capturedImages.add(u);
+                                        }
+                                    }
                                 }
 
                                 String prodName = obj.optString("product_name", obj.optString("productName", model.isEmpty() ? "Finished Good Item" : model));
@@ -1232,7 +1322,8 @@ public class MainActivity extends Activity {
                                     dev,
                                     status.toUpperCase(Locale.US),
                                     prodImg,
-                                    fgImages
+                                    masterImages,
+                                    capturedImages
                                 );
                                 mTransactionRecords.add(r);
                             }
@@ -1264,16 +1355,31 @@ public class MainActivity extends Activity {
         String activeDevName = getDeviceName().toLowerCase(Locale.US);
         String activeDevId = getDeviceId().toLowerCase(Locale.US);
 
-        List<TransactionRecord> deviceFiltered = new ArrayList<>();
+        List<TransactionRecord> wipRecords = new ArrayList<>();
         for (TransactionRecord r : mTransactionRecords) {
+            if (r.status != null && r.status.trim().equalsIgnoreCase("WIP")) {
+                wipRecords.add(r);
+            }
+        }
+        // Fallback: If status field isn't exact "WIP" but contains "WIP" or default
+        if (wipRecords.isEmpty()) {
+            for (TransactionRecord r : mTransactionRecords) {
+                if (r.status == null || r.status.isEmpty() || r.status.toUpperCase(Locale.US).contains("WIP")) {
+                    wipRecords.add(r);
+                }
+            }
+        }
+
+        List<TransactionRecord> deviceFiltered = new ArrayList<>();
+        for (TransactionRecord r : wipRecords) {
             String dev = r.deviceId != null ? r.deviceId.toLowerCase(Locale.US) : "";
             if (dev.contains(activeDevName) || dev.contains(activeDevId) || activeDevName.contains(dev) || activeDevId.contains(dev) || (dev.contains("cipherlab") && activeDevName.contains("cipherlab"))) {
                 deviceFiltered.add(r);
             }
         }
 
-        // Fallback to all records if active device doesn't have records yet
-        List<TransactionRecord> baseList = deviceFiltered.isEmpty() ? mTransactionRecords : deviceFiltered;
+        // Fallback to all WIP records if active device doesn't have records yet
+        List<TransactionRecord> baseList = deviceFiltered.isEmpty() ? wipRecords : deviceFiltered;
 
         // Keep at most 10 recent transactions
         mThisDeviceRecords.clear();
@@ -1313,13 +1419,13 @@ public class MainActivity extends Activity {
 
         if (records == null || records.isEmpty()) {
             if (layoutRecEmpty != null) layoutRecEmpty.setVisibility(View.VISIBLE);
-            if (tvRecCountBadge != null) tvRecCountBadge.setText("0 Records");
+            if (tvRecCountBadge != null) tvRecCountBadge.setText("0 WIP Records");
             return;
         }
 
         if (layoutRecEmpty != null) layoutRecEmpty.setVisibility(View.GONE);
         if (tvRecCountBadge != null) {
-            tvRecCountBadge.setText(records.size() + " Records (Last 10)");
+            tvRecCountBadge.setText(records.size() + " WIP Records (Last 10)");
         }
 
         LayoutInflater inflater = LayoutInflater.from(this);
@@ -1356,7 +1462,7 @@ public class MainActivity extends Activity {
 
             // Load product thumbnail
             if (imgProduct != null) {
-                String imgUrl = !r.fgImages.isEmpty() ? r.fgImages.get(0) : r.productImage;
+                String imgUrl = !r.masterImages.isEmpty() ? r.masterImages.get(0) : (!r.capturedImages.isEmpty() ? r.capturedImages.get(0) : r.productImage);
                 ImageLoader.getInstance().loadImage(imgProduct, imgUrl, getBaseUrl(), R.drawable.ic_image_placeholder, null);
             }
 
@@ -1392,19 +1498,6 @@ public class MainActivity extends Activity {
                 showDeviceInfoDialog();
             });
         }
-        btnHeaderMenu.setOnClickListener(v -> {
-            // Quick toggle between Validation and Technical Scanner
-            if (mCurrentScreen == SCREEN_VALIDATION) {
-                showScreen(SCREEN_SCANNER);
-            } else {
-                showScreen(SCREEN_VALIDATION);
-            }
-        });
-
-        btnHeaderNotifications.setOnClickListener(v -> {
-            Toast.makeText(this, "FastAPI Service: " + getBaseUrl() + " (Online)", Toast.LENGTH_SHORT).show();
-            showDeviceInfoDialog();
-        });
     }
 
     // =========================================================================
@@ -1672,79 +1765,190 @@ public class MainActivity extends Activity {
         if (tvRssi != null) tvRssi.setText(String.format(Locale.US, "RSSI: %.1f dBm", record.rfidRssi));
 
         if (tvCategory != null) tvCategory.setText(record.category);
-        if (tvFgStatus != null) tvFgStatus.setText("Active");
+        if (tvFgStatus != null) tvFgStatus.setText(record.status != null && !record.status.isEmpty() ? record.status : "Active");
         if (tvProductName != null) tvProductName.setText(record.model.isEmpty() ? record.productName : record.model);
-        if (tvPartNumber != null) tvPartNumber.setText("Part Number: " + record.partNumber);
+        if (tvPartNumber != null) {
+            String pn = (record.partNumber != null && !record.partNumber.isEmpty() && !record.partNumber.equalsIgnoreCase("FG-")) ? record.partNumber : ("FG-" + record.materialCode);
+            tvPartNumber.setText("Part Number: " + pn);
+        }
         if (tvMaterialCode != null) tvMaterialCode.setText("Material Code: " + record.materialCode);
-        if (tvDimensions != null) tvDimensions.setText("Dimensions: " + record.dimensions);
-        if (tvColour != null) tvColour.setText("Color: " + record.colour);
-        if (tvProductFamily != null) tvProductFamily.setText("Package: Rolled Vacuum Box");
+
+        // Dimensions (LxWxH with Length, Width, Height breakdown)
+        String dimFormatted = record.dimensions;
+        if (dimFormatted != null && !dimFormatted.isEmpty() && !dimFormatted.equals("0 x 0 x 0 mm")) {
+            try {
+                String cleanDim = dimFormatted.replace("mm", "").trim();
+                String[] parts = cleanDim.split("x");
+                if (parts.length == 3) {
+                    String l = parts[0].trim();
+                    String w = parts[1].trim();
+                    String h = parts[2].trim();
+                    dimFormatted = "Dimensions (LxWxH): " + l + " x " + w + " x " + h + " mm\n"
+                                 + "Length: " + l + " mm  •  Width: " + w + " mm  •  Height: " + h + " mm";
+                }
+            } catch (Exception ignored) {}
+        } else {
+            dimFormatted = "Dimensions: 0 x 0 x 0 mm";
+        }
+        if (tvDimensions != null) tvDimensions.setText(dimFormatted);
+
+        if (tvColour != null) {
+            String col = (record.colour != null && !record.colour.isEmpty()) ? record.colour : "N/A";
+            tvColour.setText("Color: " + col);
+        }
+        if (tvProductFamily != null) tvProductFamily.setVisibility(View.GONE);
 
         if (tvWorkOrder != null) tvWorkOrder.setText(record.workOrderNo);
         if (tvDeviceId != null) tvDeviceId.setText(record.deviceId);
 
-        // Image Gallery Swiping Setup in Dialog
-        final List<String> images = new ArrayList<>(record.fgImages);
-        if (images.isEmpty() && !record.productImage.isEmpty()) {
-            images.add(record.productImage);
+        // =====================================================================
+        // SECTION: MATERIAL CODE CATALOG GALLERY (Master Data only)
+        // =====================================================================
+        final List<String> matImages = new ArrayList<>(record.masterImages);
+        if (matImages.isEmpty() && !record.productImage.isEmpty()) {
+            matImages.add(record.productImage);
         }
-        final int[] currentIndex = new int[]{0};
+        final int[] curMatIndex = new int[]{0};
 
-        final Runnable updateGalleryRunnable = () -> {
+        final Runnable updateMatGalleryRunnable = () -> {
             if (imgFg == null) return;
-            if (images.isEmpty()) {
+            if (matImages.isEmpty()) {
                 imgFg.setImageResource(R.drawable.ic_image_placeholder);
-                if (tvImgAngle != null) tvImgAngle.setText("ANGLE 1/1");
+                if (tvImgAngle != null) tvImgAngle.setText("NO CATALOG PHOTO");
                 if (btnImgPrev != null) btnImgPrev.setVisibility(View.GONE);
                 if (btnImgNext != null) btnImgNext.setVisibility(View.GONE);
                 return;
             }
-            if (currentIndex[0] < 0) currentIndex[0] = 0;
-            if (currentIndex[0] >= images.size()) currentIndex[0] = images.size() - 1;
+            if (curMatIndex[0] < 0) curMatIndex[0] = 0;
+            if (curMatIndex[0] >= matImages.size()) curMatIndex[0] = matImages.size() - 1;
 
-            ImageLoader.getInstance().loadImage(imgFg, images.get(currentIndex[0]), getBaseUrl(), R.drawable.ic_image_placeholder, null);
+            String curUrl = matImages.get(curMatIndex[0]);
+            ImageLoader.getInstance().loadImage(imgFg, curUrl, getBaseUrl(), R.drawable.ic_image_placeholder, null);
             if (tvImgAngle != null) {
-                tvImgAngle.setText("ANGLE " + (currentIndex[0] + 1) + "/" + images.size());
+                tvImgAngle.setText("CATALOG PHOTO " + (curMatIndex[0] + 1) + "/" + matImages.size());
             }
-            boolean hasMultiple = images.size() > 1;
+            boolean hasMultiple = matImages.size() > 1;
             if (btnImgPrev != null) btnImgPrev.setVisibility(hasMultiple ? View.VISIBLE : View.GONE);
             if (btnImgNext != null) btnImgNext.setVisibility(hasMultiple ? View.VISIBLE : View.GONE);
         };
-        updateGalleryRunnable.run();
+        updateMatGalleryRunnable.run();
+
+        // Background sync with Master Data catalog to ensure exact dimensions, color and master photos
+        if (record.materialCode != null && !record.materialCode.isEmpty()) {
+            final String matCode = record.materialCode.trim();
+            networkExecutor.execute(() -> {
+                try {
+                    String endpoint = getBaseUrl() + "/api/master-data/" + URLEncoder.encode(matCode, "UTF-8");
+                    HttpResult res = sendHttpRequest("GET", endpoint, null);
+                    if (res.statusCode == 200) {
+                        JSONObject mObj = new JSONObject(res.body);
+
+                        String mPart = mObj.optString("partNumber", mObj.optString("part_number", ""));
+                        String mColor = mObj.optString("color", mObj.optString("colour", ""));
+                        String mStatus = mObj.optString("status", mObj.optString("status_id", ""));
+                        String mModel = mObj.optString("model", mObj.optString("productName", ""));
+
+                        int l = 0, w = 0, h = 0;
+                        JSONObject dObj = mObj.optJSONObject("dimensions");
+                        if (dObj != null) {
+                            l = dObj.optInt("lengthMm", dObj.optInt("length_mm", 0));
+                            w = dObj.optInt("widthMm", dObj.optInt("width_mm", 0));
+                            h = dObj.optInt("heightMm", dObj.optInt("height_mm", 0));
+                        }
+                        if (l == 0) l = mObj.optInt("length_mm", mObj.optInt("lengthMm", 0));
+                        if (w == 0) w = mObj.optInt("width_mm", mObj.optInt("widthMm", 0));
+                        if (h == 0) h = mObj.optInt("height_mm", mObj.optInt("heightMm", 0));
+
+                        final int finalL = l;
+                        final int finalW = w;
+                        final int finalH = h;
+                        final String finalPart = mPart;
+                        final String finalColor = mColor;
+                        final String finalStatus = mStatus;
+                        final String finalModel = mModel;
+
+                        List<String> syncMasterImgs = new ArrayList<>();
+                        JSONArray fgArr = mObj.optJSONArray("fgImage");
+                        if (fgArr == null) fgArr = mObj.optJSONArray("images");
+                        if (fgArr != null) {
+                            for (int i = 0; i < fgArr.length(); i++) {
+                                String u = fgArr.optString(i, "").trim();
+                                if (!u.isEmpty() && !syncMasterImgs.contains(u)) {
+                                    syncMasterImgs.add(u);
+                                }
+                            }
+                        }
+
+                        mainHandler.post(() -> {
+                            if (!dialog.isShowing()) return;
+
+                            if (finalL > 0 || finalW > 0 || finalH > 0) {
+                                String updatedDim = "Dimensions (LxWxH): " + finalL + " x " + finalW + " x " + finalH + " mm\n"
+                                                  + "Length: " + finalL + " mm  •  Width: " + finalW + " mm  •  Height: " + finalH + " mm";
+                                if (tvDimensions != null) tvDimensions.setText(updatedDim);
+                            }
+                            if (!finalColor.isEmpty() && tvColour != null) {
+                                tvColour.setText("Color: " + finalColor);
+                            }
+                            if (!finalPart.isEmpty() && tvPartNumber != null) {
+                                tvPartNumber.setText("Part Number: " + finalPart);
+                            }
+                            if (!finalStatus.isEmpty() && tvFgStatus != null) {
+                                tvFgStatus.setText(finalStatus);
+                            }
+                            if (!finalModel.isEmpty() && tvProductName != null) {
+                                tvProductName.setText(finalModel);
+                            }
+
+                            boolean addedAny = false;
+                            for (String u : syncMasterImgs) {
+                                if (!matImages.contains(u)) {
+                                    matImages.add(0, u);
+                                    addedAny = true;
+                                }
+                            }
+                            if (addedAny) {
+                                updateMatGalleryRunnable.run();
+                            }
+                        });
+                    }
+                } catch (Exception ignored) {}
+            });
+        }
 
         if (btnImgPrev != null) {
             btnImgPrev.setOnClickListener(v -> {
-                if (images.size() > 1) {
-                    currentIndex[0] = (currentIndex[0] - 1 + images.size()) % images.size();
-                    updateGalleryRunnable.run();
+                if (matImages.size() > 1) {
+                    curMatIndex[0] = (curMatIndex[0] - 1 + matImages.size()) % matImages.size();
+                    updateMatGalleryRunnable.run();
                 }
             });
         }
         if (btnImgNext != null) {
             btnImgNext.setOnClickListener(v -> {
-                if (images.size() > 1) {
-                    currentIndex[0] = (currentIndex[0] + 1) % images.size();
-                    updateGalleryRunnable.run();
+                if (matImages.size() > 1) {
+                    curMatIndex[0] = (curMatIndex[0] + 1) % matImages.size();
+                    updateMatGalleryRunnable.run();
                 }
             });
         }
 
         if (imgFg != null) {
-            final GestureDetector gd = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            final GestureDetector gdMat = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
                 @Override
                 public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
                     if (e1 != null && e2 != null) {
                         float diffX = e2.getX() - e1.getX();
                         if (Math.abs(diffX) > 50 && Math.abs(velocityX) > 100) {
                             if (diffX > 0) {
-                                if (images.size() > 1) {
-                                    currentIndex[0] = (currentIndex[0] - 1 + images.size()) % images.size();
-                                    updateGalleryRunnable.run();
+                                if (matImages.size() > 1) {
+                                    curMatIndex[0] = (curMatIndex[0] - 1 + matImages.size()) % matImages.size();
+                                    updateMatGalleryRunnable.run();
                                 }
                             } else {
-                                if (images.size() > 1) {
-                                    currentIndex[0] = (currentIndex[0] + 1) % images.size();
-                                    updateGalleryRunnable.run();
+                                if (matImages.size() > 1) {
+                                    curMatIndex[0] = (curMatIndex[0] + 1) % matImages.size();
+                                    updateMatGalleryRunnable.run();
                                 }
                             }
                             return true;
@@ -1754,9 +1958,152 @@ public class MainActivity extends Activity {
                 }
             });
             imgFg.setOnTouchListener((v, ev) -> {
-                gd.onTouchEvent(ev);
+                gdMat.onTouchEvent(ev);
                 return true;
             });
+        }
+
+        // =====================================================================
+        // SECTION: CAPTURED INSPECTION PHOTOS (SEPARATE DEDICATED SECTION)
+        // =====================================================================
+        TextView tvCapturedBadge = dialog.findViewById(R.id.dialog_tv_captured_badge);
+        View layoutCapturedGallery = dialog.findViewById(R.id.dialog_layout_captured_gallery);
+        ImageView imgCaptured = dialog.findViewById(R.id.dialog_img_captured);
+        TextView tvCapturedAngle = dialog.findViewById(R.id.dialog_tv_captured_angle);
+        Button btnCapturedPrev = dialog.findViewById(R.id.dialog_btn_captured_prev);
+        Button btnCapturedNext = dialog.findViewById(R.id.dialog_btn_captured_next);
+        HorizontalScrollView scrollCapturedThumbnails = dialog.findViewById(R.id.dialog_scroll_captured_thumbnails);
+        LinearLayout layoutCapturedThumbnails = dialog.findViewById(R.id.dialog_layout_captured_thumbnails);
+        TextView tvCapturedEmpty = dialog.findViewById(R.id.dialog_tv_captured_empty);
+
+        final List<String> capturedImages = new ArrayList<>(record.capturedImages);
+        if (capturedImages.isEmpty()) {
+            if (tvCapturedBadge != null) tvCapturedBadge.setText("0 PHOTOS");
+            if (layoutCapturedGallery != null) layoutCapturedGallery.setVisibility(View.GONE);
+            if (scrollCapturedThumbnails != null) scrollCapturedThumbnails.setVisibility(View.GONE);
+            if (tvCapturedEmpty != null) tvCapturedEmpty.setVisibility(View.VISIBLE);
+        } else {
+            if (tvCapturedBadge != null) {
+                tvCapturedBadge.setText(capturedImages.size() + (capturedImages.size() == 1 ? " PHOTO" : " PHOTOS"));
+            }
+            if (layoutCapturedGallery != null) layoutCapturedGallery.setVisibility(View.VISIBLE);
+            if (scrollCapturedThumbnails != null) scrollCapturedThumbnails.setVisibility(View.VISIBLE);
+            if (tvCapturedEmpty != null) tvCapturedEmpty.setVisibility(View.GONE);
+
+            final int[] curCapIndex = new int[]{0};
+            final List<FrameLayout> capThumbnailFrames = new ArrayList<>();
+
+            final Runnable updateCapturedGalleryRunnable = () -> {
+                if (imgCaptured == null) return;
+                if (curCapIndex[0] < 0) curCapIndex[0] = 0;
+                if (curCapIndex[0] >= capturedImages.size()) curCapIndex[0] = capturedImages.size() - 1;
+
+                String curCapUrl = capturedImages.get(curCapIndex[0]);
+                ImageLoader.getInstance().loadImage(imgCaptured, curCapUrl, getBaseUrl(), R.drawable.ic_image_placeholder, null);
+
+                if (tvCapturedAngle != null) {
+                    tvCapturedAngle.setText("INSPECTION PHOTO " + (curCapIndex[0] + 1) + "/" + capturedImages.size());
+                }
+
+                boolean hasMultipleCap = capturedImages.size() > 1;
+                if (btnCapturedPrev != null) btnCapturedPrev.setVisibility(hasMultipleCap ? View.VISIBLE : View.GONE);
+                if (btnCapturedNext != null) btnCapturedNext.setVisibility(hasMultipleCap ? View.VISIBLE : View.GONE);
+
+                // Highlight active thumbnail
+                for (int i = 0; i < capThumbnailFrames.size(); i++) {
+                    FrameLayout frame = capThumbnailFrames.get(i);
+                    if (i == curCapIndex[0]) {
+                        frame.setBackgroundResource(R.drawable.bg_card_highlight);
+                    } else {
+                        frame.setBackgroundResource(R.drawable.bg_card);
+                    }
+                }
+            };
+
+            // Build Thumbnail Strip
+            if (layoutCapturedThumbnails != null) {
+                layoutCapturedThumbnails.removeAllViews();
+                capThumbnailFrames.clear();
+                int dp56 = (int) (56 * getResources().getDisplayMetrics().density);
+                int dp8 = (int) (8 * getResources().getDisplayMetrics().density);
+                int dp2 = (int) (2 * getResources().getDisplayMetrics().density);
+
+                for (int i = 0; i < capturedImages.size(); i++) {
+                    final int capIdx = i;
+                    String thumbUrl = capturedImages.get(i);
+
+                    FrameLayout frame = new FrameLayout(this);
+                    LinearLayout.LayoutParams fParams = new LinearLayout.LayoutParams(dp56, dp56);
+                    fParams.setMargins(0, 0, dp8, 0);
+                    frame.setLayoutParams(fParams);
+                    frame.setPadding(dp2, dp2, dp2, dp2);
+                    frame.setBackgroundResource(i == 0 ? R.drawable.bg_card_highlight : R.drawable.bg_card);
+
+                    ImageView thumbIv = new ImageView(this);
+                    FrameLayout.LayoutParams ivParams = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+                    thumbIv.setLayoutParams(ivParams);
+                    thumbIv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    ImageLoader.getInstance().loadImage(thumbIv, thumbUrl, getBaseUrl(), R.drawable.ic_image_placeholder, null);
+
+                    frame.addView(thumbIv);
+                    frame.setOnClickListener(v -> {
+                        curCapIndex[0] = capIdx;
+                        updateCapturedGalleryRunnable.run();
+                    });
+
+                    capThumbnailFrames.add(frame);
+                    layoutCapturedThumbnails.addView(frame);
+                }
+            }
+
+            updateCapturedGalleryRunnable.run();
+
+            if (btnCapturedPrev != null) {
+                btnCapturedPrev.setOnClickListener(v -> {
+                    if (capturedImages.size() > 1) {
+                        curCapIndex[0] = (curCapIndex[0] - 1 + capturedImages.size()) % capturedImages.size();
+                        updateCapturedGalleryRunnable.run();
+                    }
+                });
+            }
+            if (btnCapturedNext != null) {
+                btnCapturedNext.setOnClickListener(v -> {
+                    if (capturedImages.size() > 1) {
+                        curCapIndex[0] = (curCapIndex[0] + 1) % capturedImages.size();
+                        updateCapturedGalleryRunnable.run();
+                    }
+                });
+            }
+
+            if (imgCaptured != null) {
+                final GestureDetector gdCap = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+                    @Override
+                    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                        if (e1 != null && e2 != null) {
+                            float diffX = e2.getX() - e1.getX();
+                            if (Math.abs(diffX) > 50 && Math.abs(velocityX) > 100) {
+                                if (diffX > 0) {
+                                    if (capturedImages.size() > 1) {
+                                        curCapIndex[0] = (curCapIndex[0] - 1 + capturedImages.size()) % capturedImages.size();
+                                        updateCapturedGalleryRunnable.run();
+                                    }
+                                } else {
+                                    if (capturedImages.size() > 1) {
+                                        curCapIndex[0] = (curCapIndex[0] + 1) % capturedImages.size();
+                                        updateCapturedGalleryRunnable.run();
+                                    }
+                                }
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                });
+                imgCaptured.setOnTouchListener((v, ev) -> {
+                    gdCap.onTouchEvent(ev);
+                    return true;
+                });
+            }
         }
 
         if (btnClose != null) {
@@ -2081,9 +2428,24 @@ public class MainActivity extends Activity {
                 o.put("rfidEpc", r.rfidEpc);
                 o.put("materialCode", r.materialCode);
                 o.put("productName", r.productName);
+                o.put("partNumber", r.partNumber);
+                o.put("category", r.category);
+                o.put("model", r.model);
+                o.put("dimensions", r.dimensions);
+                o.put("colour", r.colour);
                 o.put("workOrderNo", r.workOrderNo);
                 o.put("deviceId", r.deviceId);
                 o.put("status", r.status);
+                o.put("productImage", r.productImage);
+
+                JSONArray mArr = new JSONArray();
+                for (String mi : r.masterImages) mArr.put(mi);
+                o.put("masterImages", mArr);
+
+                JSONArray cArr = new JSONArray();
+                for (String ci : r.capturedImages) cArr.put(ci);
+                o.put("capturedImages", cArr);
+
                 arr.put(o);
             }
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
@@ -2099,17 +2461,38 @@ public class MainActivity extends Activity {
             JSONArray arr = new JSONArray(json);
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject o = arr.getJSONObject(i);
+
+                List<String> mList = new ArrayList<>();
+                JSONArray mArr = o.optJSONArray("masterImages");
+                if (mArr != null) {
+                    for (int j = 0; j < mArr.length(); j++) mList.add(mArr.getString(j));
+                }
+
+                List<String> cList = new ArrayList<>();
+                JSONArray cArr = o.optJSONArray("capturedImages");
+                if (cArr != null) {
+                    for (int j = 0; j < cArr.length(); j++) cList.add(cArr.getString(j));
+                }
+
                 mTransactionRecords.add(new TransactionRecord(
-                    o.getString("id"),
-                    o.getString("timestamp"),
-                    o.getString("rfidEpc"),
-                    "",
+                    o.optString("id", ""),
+                    o.optString("timestamp", ""),
+                    o.optString("rfidEpc", ""),
+                    o.optString("rfidTid", "E28011606000021A58"),
                     -44.0,
-                    o.getString("materialCode"),
+                    o.optString("materialCode", ""),
                     o.optString("productName", "Finished Good Item"),
-                    o.getString("workOrderNo"),
-                    o.getString("deviceId"),
-                    o.getString("status")
+                    o.optString("partNumber", ""),
+                    o.optString("category", "Mattress"),
+                    o.optString("model", ""),
+                    o.optString("dimensions", "0 x 0 x 0 mm"),
+                    o.optString("colour", "Red"),
+                    o.optString("workOrderNo", ""),
+                    o.optString("deviceId", ""),
+                    o.optString("status", "WIP"),
+                    o.optString("productImage", ""),
+                    mList,
+                    cList
                 ));
             }
         } catch (Exception ignored) {}
@@ -2493,6 +2876,8 @@ public class MainActivity extends Activity {
         public final String deviceId;
         public final String status;
         public final String productImage;
+        public final List<String> masterImages;
+        public final List<String> capturedImages;
         public final List<String> fgImages;
 
         public TransactionRecord(String id, String timestamp, String rfidEpc, String rfidTid,
@@ -2500,7 +2885,7 @@ public class MainActivity extends Activity {
                                  String partNumber, String category, String model,
                                  String dimensions, String colour,
                                  String workOrderNo, String deviceId, String status,
-                                 String productImage, List<String> fgImages) {
+                                 String productImage, List<String> masterImages, List<String> capturedImages) {
             this.id = id;
             this.timestamp = timestamp;
             this.rfidEpc = rfidEpc;
@@ -2517,7 +2902,20 @@ public class MainActivity extends Activity {
             this.deviceId = deviceId;
             this.status = status;
             this.productImage = productImage != null ? productImage : "";
-            this.fgImages = fgImages != null ? fgImages : new ArrayList<>();
+            this.masterImages = masterImages != null ? masterImages : new ArrayList<>();
+            this.capturedImages = capturedImages != null ? capturedImages : new ArrayList<>();
+            this.fgImages = this.masterImages;
+        }
+
+        public TransactionRecord(String id, String timestamp, String rfidEpc, String rfidTid,
+                                 double rfidRssi, String materialCode, String productName,
+                                 String partNumber, String category, String model,
+                                 String dimensions, String colour,
+                                 String workOrderNo, String deviceId, String status,
+                                 String productImage, List<String> fgImages) {
+            this(id, timestamp, rfidEpc, rfidTid, rfidRssi, materialCode, productName,
+                 partNumber, category, model, dimensions, colour,
+                 workOrderNo, deviceId, status, productImage, fgImages, new ArrayList<>());
         }
 
         public TransactionRecord(String id, String timestamp, String rfidEpc, String rfidTid,
@@ -2525,7 +2923,7 @@ public class MainActivity extends Activity {
                                  String workOrderNo, String deviceId, String status) {
             this(id, timestamp, rfidEpc, rfidTid, rfidRssi, materialCode, productName,
                  "FG-" + materialCode, "Mattress", productName, "0 x 0 x 0 mm", "Red",
-                 workOrderNo, deviceId, status, "/products/mattress_1.jpg", new ArrayList<>());
+                 workOrderNo, deviceId, status, "/products/mattress_1.jpg", new ArrayList<>(), new ArrayList<>());
         }
     }
 }
