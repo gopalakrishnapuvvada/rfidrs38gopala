@@ -273,14 +273,16 @@ public class MainActivity extends Activity {
         // Initialize CipherLab RFID Manager
         initCipherLabRfid();
 
-        // Check Device Hardware MAC Address Authorization on Startup
-        checkDeviceAuthorization(false);
+        // Prompt user for device name and verify against server Device Management on startup
+        showDeviceNamePromptDialog();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        checkDeviceAuthorization(false);
+        if (!mIsDeviceAuthorized && (mDeviceNamePromptDialog == null || !mDeviceNamePromptDialog.isShowing())) {
+            showDeviceNamePromptDialog();
+        }
     }
 
     @Override
@@ -437,8 +439,8 @@ public class MainActivity extends Activity {
 
             // Test connection by fetching live records immediately
             fetchWipTransactionsFromServer("");
-            // Re-verify device MAC authorization against updated server IP
-            checkDeviceAuthorization(true);
+            // Verify device name against updated server IP
+            showDeviceNamePromptDialog();
         });
     }
 
@@ -588,7 +590,10 @@ public class MainActivity extends Activity {
     // =========================================================================
     private void setupScannerScreenListeners() {
         if (tvConfigAuthBadge != null) {
-            tvConfigAuthBadge.setOnClickListener(v -> showDeviceInfoDialog());
+            tvConfigAuthBadge.setOnClickListener(v -> showDeviceNamePromptDialog());
+        }
+        if (tvConfigDevName != null) {
+            tvConfigDevName.setOnClickListener(v -> showDeviceNamePromptDialog());
         }
     }
 
@@ -2203,79 +2208,26 @@ public class MainActivity extends Activity {
         return defaultMac;
     }
 
-    /**
-     * Checks if this device's MAC address is authorized with the backend.
-     * Endpoint: GET /api/devices/authorize?mac_address=...
-     */
-    public void checkDeviceAuthorization(final boolean isManualRetry) {
-        final String mac = getDeviceMacAddress();
-        appendLog("[DEVICE AUTH] Verifying authorization for MAC: " + mac);
-
-        networkExecutor.execute(() -> {
-            try {
-                String endpoint = getBaseUrl() + "/api/devices/authorize?mac_address=" + URLEncoder.encode(mac, "UTF-8");
-                HttpResult result = sendHttpRequest("GET", endpoint, null);
-
-                mainHandler.post(() -> {
-                    if (result.statusCode == 200) {
-                        try {
-                            JSONObject res = new JSONObject(result.body);
-                            boolean authorized = res.optBoolean("authorized", false);
-                            String status = res.optString("status", "unauthorized");
-                            String message = res.optString("message", "Device authorization status: " + status);
-                            String displayName = res.optString("displayName", "CipherLab RS38");
-                            String devId = res.optString("deviceId", getDeviceId());
-
-                            if (authorized) {
-                                mIsDeviceAuthorized = true;
-                                mDeviceDisplayName = displayName;
-                                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                                    .putString(KEY_DEVICE_NAME, displayName)
-                                    .putString(KEY_DEVICE_ID, devId)
-                                    .apply();
-                                updateDeviceLabels();
-                                appendLog("[DEVICE AUTH] ✓ Device authorized: " + displayName + " (" + mac + ")");
-                                if (isManualRetry) {
-                                    Toast.makeText(MainActivity.this, "✓ Device Authorized: " + displayName, Toast.LENGTH_SHORT).show();
-                                }
-                            } else {
-                                mIsDeviceAuthorized = false;
-                                updateDeviceLabels();
-                                appendLog("[DEVICE AUTH] ⚠️ Unauthorized MAC: " + mac + " (" + status + ")");
-                                showUnauthorizedDeviceDialog(mac, status, message);
-                            }
-                        } catch (Exception e) {
-                            Log.e(TAG, "Error parsing authorization response", e);
-                        }
-                    } else {
-                        appendLog("[DEVICE AUTH] Server returned HTTP " + result.statusCode);
-                        if (isManualRetry) {
-                            showAuthConnectionErrorDialog(mac, "Server returned HTTP " + result.statusCode);
-                        }
-                    }
-                });
-            } catch (Exception e) {
-                final String err = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-                mainHandler.post(() -> {
-                    appendLog("[DEVICE AUTH] Network connection error: " + err);
-                    if (isManualRetry) {
-                        showAuthConnectionErrorDialog(mac, "Cannot connect to server at " + getBaseUrl() + "\n(" + err + ")");
-                    }
-                });
-            }
-        });
-    }
+    // =========================================================================
+    // DEVICE REGISTRATION & HANDHELD SCANNER AUTHENTICATION
+    // =========================================================================
+    private Dialog mDeviceNamePromptDialog = null;
 
     /**
-     * Displays modal popup alerting user that the device MAC is unauthorized.
-     * Provides one-tap [ Authorize Device Now ], [ Retry ], and [ Dismiss ].
+     * Prompts the user to enter the Handheld Scanner device name on startup.
+     * Checks against server-side Device Management where device_type == 'Handheld Scanner'.
+     * If matched, grants access to the app; otherwise alerts user that the device is not registered.
      */
-    private void showUnauthorizedDeviceDialog(final String mac, final String status, final String reason) {
+    public void showDeviceNamePromptDialog() {
         if (isFinishing() || (Build.VERSION.SDK_INT >= 17 && isDestroyed())) return;
+        if (mDeviceNamePromptDialog != null && mDeviceNamePromptDialog.isShowing()) {
+            return;
+        }
 
         final Dialog dialog = new Dialog(this);
+        mDeviceNamePromptDialog = dialog;
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        dialog.setContentView(R.layout.dialog_device_authorization);
+        dialog.setContentView(R.layout.dialog_device_name_prompt);
         dialog.setCancelable(false);
         dialog.setCanceledOnTouchOutside(false);
 
@@ -2287,130 +2239,244 @@ public class MainActivity extends Activity {
             );
         }
 
-        TextView tvBadge = dialog.findViewById(R.id.dialog_auth_tv_status_badge);
-        TextView tvMac = dialog.findViewById(R.id.dialog_auth_tv_mac);
-        TextView tvModel = dialog.findViewById(R.id.dialog_auth_tv_model);
-        TextView tvReason = dialog.findViewById(R.id.dialog_auth_tv_reason);
-        Button btnAuthorize = dialog.findViewById(R.id.dialog_auth_btn_authorize);
-        Button btnRetry = dialog.findViewById(R.id.dialog_auth_btn_retry);
-        Button btnDismiss = dialog.findViewById(R.id.dialog_auth_btn_dismiss);
+        final EditText edtInput = dialog.findViewById(R.id.dialog_name_edt_input);
+        final TextView tvServer = dialog.findViewById(R.id.dialog_name_tv_server);
+        final TextView btnChangeIp = dialog.findViewById(R.id.dialog_name_btn_change_ip);
+        final TextView tvError = dialog.findViewById(R.id.dialog_name_tv_error);
+        final Button btnSubmit = dialog.findViewById(R.id.dialog_name_btn_submit);
 
-        if (tvBadge != null) tvBadge.setText(status != null ? status.toUpperCase() : "UNAUTHORIZED");
-        if (tvMac != null) tvMac.setText(mac);
-        if (tvModel != null) tvModel.setText(Build.MANUFACTURER + " " + Build.MODEL + " (CipherLab Handheld)");
-        if (tvReason != null && reason != null && !reason.isEmpty()) {
-            tvReason.setText(reason);
+        // Pre-fill with previously saved device name if available
+        String savedDevName = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_DEVICE_NAME, "");
+        if (!savedDevName.isEmpty() && edtInput != null) {
+            edtInput.setText(savedDevName);
+            edtInput.setSelection(savedDevName.length());
         }
 
-        if (btnAuthorize != null) {
-            btnAuthorize.setOnClickListener(v -> {
-                btnAuthorize.setEnabled(false);
-                btnAuthorize.setText("Authorizing device...");
-                registerAndAuthorizeDevice(mac, dialog, btnAuthorize);
-            });
+        if (tvServer != null) {
+            tvServer.setText("Server: " + getBaseUrl());
         }
 
-        if (btnRetry != null) {
-            btnRetry.setOnClickListener(v -> {
-                dialog.dismiss();
-                checkDeviceAuthorization(true);
-            });
+        if (btnChangeIp != null) {
+            btnChangeIp.setOnClickListener(v -> showConfigureServerIpDialog(dialog));
         }
 
-        if (btnDismiss != null) {
-            btnDismiss.setOnClickListener(v -> {
-                dialog.dismiss();
-                Toast.makeText(this, "Operating in restricted mode (MAC: " + mac + ")", Toast.LENGTH_SHORT).show();
+        if (btnSubmit != null) {
+            btnSubmit.setOnClickListener(v -> {
+                String enteredName = edtInput != null ? edtInput.getText().toString().trim() : "";
+                if (enteredName.isEmpty()) {
+                    if (tvError != null) {
+                        tvError.setVisibility(View.VISIBLE);
+                        tvError.setText("Please enter a device name.");
+                    }
+                    Toast.makeText(MainActivity.this, "Please enter a device name", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (tvError != null) tvError.setVisibility(View.GONE);
+                btnSubmit.setEnabled(false);
+                btnSubmit.setText("Verifying with server...");
+
+                verifyDeviceNameWithServer(enteredName, dialog, btnSubmit, tvError);
             });
         }
 
         dialog.show();
     }
 
-    /**
-     * Registers and authorizes the device in the backend database.
-     * Endpoint: POST /api/devices/register_and_authorize
-     */
-    private void registerAndAuthorizeDevice(final String mac, final Dialog dialog, final Button btnAuthorize) {
+    private void verifyDeviceNameWithServer(final String enteredName, final Dialog dialog, final Button btnSubmit, final TextView tvError) {
         networkExecutor.execute(() -> {
             try {
-                String cleanMac = mac.replace(":", "").replace("-", "").trim();
-                String suffix = cleanMac.length() >= 4 ? cleanMac.substring(cleanMac.length() - 4) : "01";
+                // 1. Primary endpoint: GET /api/devices/verify_handheld_name?name=...
+                String endpoint = getBaseUrl() + "/api/devices/verify_handheld_name?name=" + URLEncoder.encode(enteredName, "UTF-8");
+                HttpResult res = sendHttpRequest("GET", endpoint, null);
 
-                JSONObject payload = new JSONObject();
-                payload.put("mac_address", mac);
-                payload.put("display_name", "CipherLab RS38 (" + Build.MODEL + " - " + suffix + ")");
-                payload.put("device_id", "dev-cpr-" + suffix.toLowerCase());
-                payload.put("status", "online");
+                boolean matched = false;
+                String matchedName = enteredName;
+                String matchedDevId = "";
 
-                String endpoint = getBaseUrl() + "/api/devices/register_and_authorize";
-                HttpResult result = sendHttpRequest("POST", endpoint, payload.toString());
-
-                mainHandler.post(() -> {
-                    if (result.statusCode == 200 || result.statusCode == 201) {
-                        Toast.makeText(MainActivity.this, "✓ Device successfully registered & authorized!", Toast.LENGTH_LONG).show();
-                        appendLog("[DEVICE AUTH] Registered & authorized MAC: " + mac);
-                        if (dialog != null && dialog.isShowing()) {
-                            dialog.dismiss();
-                        }
-                        checkDeviceAuthorization(true);
-                    } else {
-                        String detail = extractErrorDetail(result.body);
-                        Toast.makeText(MainActivity.this, "Registration failed: " + detail, Toast.LENGTH_LONG).show();
-                        appendLog("[DEVICE AUTH ERROR] " + detail);
-                        if (btnAuthorize != null) {
-                            btnAuthorize.setEnabled(true);
-                            btnAuthorize.setText("✓ Authorize Device Now");
+                if (res.statusCode == 200) {
+                    JSONObject obj = new JSONObject(res.body);
+                    matched = obj.optBoolean("matched", obj.optBoolean("registered", false));
+                    JSONObject devObj = obj.optJSONObject("device");
+                    if (devObj != null) {
+                        matchedName = devObj.optString("name", devObj.optString("displayName", enteredName));
+                        matchedDevId = devObj.optString("deviceId", devObj.optString("device_id", ""));
+                    }
+                } else {
+                    // Fallback: Query all devices where device_type == Handheld Scanner via GET /api/devices/
+                    String fallbackEndpoint = getBaseUrl() + "/api/devices/?device_type=" + URLEncoder.encode("Handheld Scanner", "UTF-8");
+                    HttpResult fallbackRes = sendHttpRequest("GET", fallbackEndpoint, null);
+                    if (fallbackRes.statusCode == 200) {
+                        JSONArray arr = new JSONArray(fallbackRes.body);
+                        for (int i = 0; i < arr.length(); i++) {
+                            JSONObject d = arr.getJSONObject(i);
+                            String dType = d.optString("deviceType", d.optString("device_type", "Handheld Scanner"));
+                            String dName = d.optString("name", d.optString("displayName", ""));
+                            if (dType.toLowerCase(Locale.US).contains("handheld") && dName.trim().equalsIgnoreCase(enteredName.trim())) {
+                                matched = true;
+                                matchedName = dName;
+                                matchedDevId = d.optString("deviceId", d.optString("id", ""));
+                                break;
+                            }
                         }
                     }
+                }
+
+                final boolean isMatched = matched;
+                final String finalMatchedName = matchedName;
+                final String finalMatchedDevId = matchedDevId;
+
+                mainHandler.post(() -> {
+                    if (btnSubmit != null) {
+                        btnSubmit.setEnabled(true);
+                        btnSubmit.setText("Submit & Access App");
+                    }
+
+                    if (isMatched) {
+                        // MATCH! Allow user to access the app
+                        mIsDeviceAuthorized = true;
+                        mDeviceDisplayName = finalMatchedName;
+                        SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
+                        editor.putString(KEY_DEVICE_NAME, finalMatchedName);
+                        if (!finalMatchedDevId.isEmpty()) {
+                            editor.putString(KEY_DEVICE_ID, finalMatchedDevId);
+                        }
+                        editor.apply();
+
+                        updateDeviceLabels();
+                        appendLog("[DEVICE LOGIN] ✓ Device verified: " + finalMatchedName + " (ID: " + finalMatchedDevId + ")");
+
+                        if (dialog != null && dialog.isShowing()) {
+                            dialog.dismiss();
+                            mDeviceNamePromptDialog = null;
+                        }
+
+                        Toast.makeText(MainActivity.this, "✓ Device Verified: " + finalMatchedName, Toast.LENGTH_LONG).show();
+
+                        // Refresh WIP records for this device
+                        fetchWipTransactionsFromServer("");
+                    } else {
+                        // NO MATCH! Show popup: "device is not registered"
+                        appendLog("[DEVICE LOGIN REJECTED] Device not registered: " + enteredName);
+
+                        if (tvError != null) {
+                            tvError.setVisibility(View.VISIBLE);
+                            tvError.setText("✕ Device '" + enteredName + "' is not registered under Handheld Scanners.");
+                        }
+
+                        showDeviceNotRegisteredPopup(enteredName);
+                    }
                 });
+
             } catch (Exception e) {
                 final String err = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
                 mainHandler.post(() -> {
-                    Toast.makeText(MainActivity.this, "Network error: " + err, Toast.LENGTH_LONG).show();
-                    appendLog("[DEVICE AUTH NET ERROR] " + err);
-                    if (btnAuthorize != null) {
-                        btnAuthorize.setEnabled(true);
-                        btnAuthorize.setText("✓ Authorize Device Now");
+                    if (btnSubmit != null) {
+                        btnSubmit.setEnabled(true);
+                        btnSubmit.setText("Submit & Access App");
                     }
+                    appendLog("[DEVICE LOGIN ERROR] " + err);
+                    showDeviceAuthNetworkErrorPopup(enteredName, err);
                 });
             }
         });
     }
 
-    private void showAuthConnectionErrorDialog(final String mac, final String errorDetail) {
+    private void showDeviceNotRegisteredPopup(final String enteredName) {
         if (isFinishing() || (Build.VERSION.SDK_INT >= 17 && isDestroyed())) return;
 
         new AlertDialog.Builder(this)
-            .setTitle("⚠️ Authorization Server Unreachable")
-            .setMessage("Could not connect to the backend server to verify device authorization:\n\n"
-                + "Server: " + getBaseUrl() + "\n"
-                + "Device MAC: " + mac + "\n\n"
-                + "Detail: " + errorDetail + "\n\n"
-                + "Please verify that the server is running and the Server IP is configured correctly.")
-            .setPositiveButton("Retry Check", (d, w) -> checkDeviceAuthorization(true))
-            .setNeutralButton("Configure IP", (d, w) -> {
-                edtServerIp.requestFocus();
-                Toast.makeText(this, "Enter server IP address and tap Save", Toast.LENGTH_SHORT).show();
+            .setTitle("⚠️ Device Not Registered")
+            .setMessage("The device name '" + enteredName + "' is not registered in Device Management under 'Handheld Scanner'.\n\nAccess to the application is restricted to registered handheld devices only.\n\nPlease verify the device name with your administrator or enter a registered device name.")
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setCancelable(false)
+            .setPositiveButton("Try Again", (d, w) -> {
+                d.dismiss();
+                if (mDeviceNamePromptDialog != null && mDeviceNamePromptDialog.isShowing()) {
+                    EditText edt = mDeviceNamePromptDialog.findViewById(R.id.dialog_name_edt_input);
+                    if (edt != null) {
+                        edt.requestFocus();
+                        edt.selectAll();
+                    }
+                } else {
+                    showDeviceNamePromptDialog();
+                }
             })
-            .setNegativeButton("Continue Offline", null)
             .show();
+    }
+
+    private void showDeviceAuthNetworkErrorPopup(final String enteredName, final String errorDetail) {
+        if (isFinishing() || (Build.VERSION.SDK_INT >= 17 && isDestroyed())) return;
+
+        new AlertDialog.Builder(this)
+            .setTitle("⚠️ Server Connection Error")
+            .setMessage("Could not connect to the backend server to verify device registration:\n\n"
+                + "Server: " + getBaseUrl() + "\n"
+                + "Device Name: " + enteredName + "\n\n"
+                + "Detail: " + errorDetail + "\n\n"
+                + "Please ensure your server is running and the Server IP is configured properly.")
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setCancelable(false)
+            .setPositiveButton("Retry", (d, w) -> {
+                d.dismiss();
+                if (mDeviceNamePromptDialog != null && mDeviceNamePromptDialog.isShowing()) {
+                    Button btn = mDeviceNamePromptDialog.findViewById(R.id.dialog_name_btn_submit);
+                    if (btn != null) btn.performClick();
+                } else {
+                    showDeviceNamePromptDialog();
+                }
+            })
+            .setNeutralButton("Configure IP", (d, w) -> {
+                d.dismiss();
+                showConfigureServerIpDialog(mDeviceNamePromptDialog);
+            })
+            .show();
+    }
+
+    private void showConfigureServerIpDialog(final Dialog parentDialog) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Configure Server IP");
+
+        final EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setText(getCleanServerIp());
+        input.setSelection(input.getText().length());
+        int pad = (int) (18 * getResources().getDisplayMetrics().density);
+        input.setPadding(pad, pad, pad, pad);
+        builder.setView(input);
+
+        builder.setPositiveButton("Save", (d, w) -> {
+            String newIp = input.getText().toString().trim();
+            if (!newIp.isEmpty()) {
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                    .putString(KEY_SERVER_IP, newIp)
+                    .apply();
+                if (edtServerIp != null) edtServerIp.setText(newIp);
+                Toast.makeText(MainActivity.this, "Server IP updated: " + newIp, Toast.LENGTH_SHORT).show();
+                if (parentDialog != null && parentDialog.isShowing()) {
+                    TextView tvServer = parentDialog.findViewById(R.id.dialog_name_tv_server);
+                    if (tvServer != null) tvServer.setText("Server: " + getBaseUrl());
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
     }
 
     private void showDeviceInfoDialog() {
         if (isFinishing() || (Build.VERSION.SDK_INT >= 17 && isDestroyed())) return;
 
-        final String mac = getDeviceMacAddress();
         String authStatusText = mIsDeviceAuthorized ? "✓ AUTHORIZED (Active)" : "⚠️ UNAUTHORIZED / PENDING";
 
         new AlertDialog.Builder(this)
             .setTitle("Device System Profile")
-            .setMessage("Hardware MAC Address:\n" + mac + "\n\n"
+            .setMessage("Device Name:\n" + getDeviceName() + "\n\n"
+                + "Device ID:\n" + getDeviceId() + "\n\n"
+                + "Hardware MAC:\n" + getDeviceMacAddress() + "\n\n"
                 + "Authorization Status:\n" + authStatusText + "\n\n"
                 + "Hardware Model:\n" + Build.MANUFACTURER + " " + Build.MODEL + "\n\n"
-                + "Android OS: Android " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + ")\n\n"
                 + "Backend Server:\n" + getBaseUrl())
-            .setPositiveButton("Re-check Authorization", (d, w) -> checkDeviceAuthorization(true))
+            .setPositiveButton("Re-verify Device Name", (d, w) -> showDeviceNamePromptDialog())
             .setNegativeButton("Close", null)
             .show();
     }

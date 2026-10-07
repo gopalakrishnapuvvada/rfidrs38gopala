@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_card"
+    android:padding="22dp">
+
+    <!-- Header with Scanner Icon -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="6dp">
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_scanner"
+            android:layout_marginEnd="10dp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Device Login"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/navy_primary" />
+
+        <TextView
+            android:id="@+id/dialog_name_tv_type_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="HANDHELD"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary_blue_accent"
+            android:background="@drawable/bg_pill_cyan"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="3dp" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Enter the registered Handheld Scanner name to access FG Scanner."
+        android:textSize="12sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="16dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border_color"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Input Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@color/gray_100"
+        android:padding="14dp"
+        android:layout_marginBottom="14dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="DEVICE NAME (REGISTERED IN SERVER):"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_secondary"
+            android:letterSpacing="0.05"
+            android:layout_marginBottom="6dp" />
+
+        <EditText
+            android:id="@+id/dialog_name_edt_input"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_search_input"
+            android:hint="e.g. cipher device main"
+            android:textSize="13sp"
+            android:textColor="@color/navy_primary"
+            android:paddingHorizontal="12dp"
+            android:singleLine="true"
+            android:imeOptions="actionDone"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:id="@+id/dialog_name_tv_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Must match a registered 'Handheld Scanner' in Device Management."
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary" />
+    </LinearLayout>
+
+    <!-- Server IP line -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/dialog_name_tv_server"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Server: http://..."
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary" />
+
+        <TextView
+            android:id="@+id/dialog_name_btn_change_ip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Change IP"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary_blue"
+            android:padding="4dp" />
+    </LinearLayout>
+
+    <!-- Error/Warning message TextView (hidden by default) -->
+    <TextView
+        android:id="@+id/dialog_name_tv_error"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="12sp"
+        android:textColor="@color/status_red"
+        android:background="@drawable/bg_pill_yellow"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="6dp"
+        android:layout_marginBottom="12dp"
+        android:visibility="gone" />
+
+    <!-- Submit Button -->
+    <Button
+        android:id="@+id/dialog_name_btn_submit"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Submit &amp; Access App"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:background="@drawable/bg_btn_primary" />
+
+</LinearLayout>
+
