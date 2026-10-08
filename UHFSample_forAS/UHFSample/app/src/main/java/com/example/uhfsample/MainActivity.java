@@ -1057,6 +1057,8 @@ public class MainActivity extends Activity {
         btnValQueue.setEnabled(false);
         btnValQueue.setText("Committing...");
 
+        final List<Bitmap> bmpsToUpload = new ArrayList<>(capturedBitmaps);
+
         networkExecutor.execute(() -> {
             try {
                 JSONObject payload = new JSONObject();
@@ -1068,7 +1070,7 @@ public class MainActivity extends Activity {
 
                 // Add compressed Base64 images
                 JSONArray imagesArray = new JSONArray();
-                for (Bitmap bmp : capturedBitmaps) {
+                for (Bitmap bmp : bmpsToUpload) {
                     String b64 = compressBitmapToBase64(bmp);
                     if (b64 != null && !b64.isEmpty()) {
                         imagesArray.put("data:image/jpeg;base64," + b64);
@@ -1136,6 +1138,8 @@ public class MainActivity extends Activity {
         final String devId = getDeviceId();
         final String devName = getDeviceName();
 
+        final List<Bitmap> bmpsToUpload = new ArrayList<>(capturedBitmaps);
+
         networkExecutor.execute(() -> {
             try {
                 JSONObject payload = new JSONObject();
@@ -1147,7 +1151,7 @@ public class MainActivity extends Activity {
 
                 // Add compressed Base64 images
                 JSONArray imagesArray = new JSONArray();
-                for (Bitmap bmp : capturedBitmaps) {
+                for (Bitmap bmp : bmpsToUpload) {
                     String b64 = compressBitmapToBase64(bmp);
                     if (b64 != null && !b64.isEmpty()) {
                         imagesArray.put("data:image/jpeg;base64," + b64);
@@ -1312,6 +1316,29 @@ public class MainActivity extends Activity {
                                         String u = uploadedArr.optString(j, "").trim();
                                         if (!u.isEmpty() && !capturedImages.contains(u)) {
                                             capturedImages.add(u);
+                                        }
+                                    }
+                                } else {
+                                    String rawImgStr = obj.optString("image_urls", obj.optString("imageUrls", obj.optString("image_paths", obj.optString("imagePaths", ""))));
+                                    if (!rawImgStr.isEmpty() && !rawImgStr.equalsIgnoreCase("null")) {
+                                        rawImgStr = rawImgStr.trim();
+                                        if (rawImgStr.startsWith("[") && rawImgStr.endsWith("]")) {
+                                            try {
+                                                JSONArray parsedArr = new JSONArray(rawImgStr);
+                                                for (int j = 0; j < parsedArr.length(); j++) {
+                                                    String u = parsedArr.optString(j, "").trim();
+                                                    if (!u.isEmpty() && !capturedImages.contains(u)) {
+                                                        capturedImages.add(u);
+                                                    }
+                                                }
+                                            } catch (Exception ignored) {}
+                                        } else if (!rawImgStr.startsWith("{")) {
+                                            for (String u : rawImgStr.split(",")) {
+                                                u = u.trim().replace("\"", "").replace("'", "");
+                                                if (!u.isEmpty() && !capturedImages.contains(u)) {
+                                                    capturedImages.add(u);
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1662,8 +1689,8 @@ public class MainActivity extends Activity {
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod(method);
             conn.setRequestProperty("Accept", "application/json");
-            conn.setConnectTimeout(6000);
-            conn.setReadTimeout(6000);
+            conn.setConnectTimeout(20000);
+            conn.setReadTimeout(30000);
 
             if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
                 conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
@@ -2926,7 +2953,7 @@ public class MainActivity extends Activity {
 
     public static String compressBitmapToBase64(Bitmap bitmap) {
         if (bitmap == null) return null;
-        int maxDimension = 1280;
+        int maxDimension = 1024;
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
         if (width > maxDimension || height > maxDimension) {

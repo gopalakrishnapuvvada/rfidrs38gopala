@@ -101,6 +101,29 @@ public class ImageLoader {
             return;
         }
 
+        // Direct Base64 data URI handling
+        if (fullUrl.startsWith("data:image/") || fullUrl.contains(";base64,")) {
+            try {
+                String b64 = fullUrl;
+                if (b64.contains(";base64,")) {
+                    b64 = b64.split(";base64,")[1];
+                }
+                byte[] decodedBytes = android.util.Base64.decode(b64.trim(), android.util.Base64.DEFAULT);
+                Bitmap bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
+                if (bitmap != null) {
+                    mMemoryCache.put(fullUrl, bitmap);
+                    imageView.setTag(fullUrl);
+                    imageView.setImageBitmap(bitmap);
+                    if (callback != null) {
+                        callback.onImageLoaded(bitmap, fullUrl);
+                    }
+                    return;
+                }
+            } catch (Exception ex) {
+                Log.w(TAG, "Failed decoding Base64 image: " + ex.getMessage());
+            }
+        }
+
         // Set placeholder and tag
         imageView.setTag(fullUrl);
         if (placeholderRes != 0) {
