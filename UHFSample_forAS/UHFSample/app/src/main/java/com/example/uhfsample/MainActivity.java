@@ -67,6 +67,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.TimeZone;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -127,7 +128,7 @@ public class MainActivity extends Activity {
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM yyyy, HH:mm:ss '(IST)'", Locale.getDefault());
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM yyyy, HH:mm:ss z", Locale.getDefault());
 
     // Hardware Keyboard-Wedge Buffering
     private final StringBuilder barcodeKeyBuffer = new StringBuilder();
@@ -1220,7 +1221,8 @@ public class MainActivity extends Activity {
     private void fetchWipTransactionsFromServer(final String query) {
         networkExecutor.execute(() -> {
             try {
-                String endpoint = getBaseUrl() + "/api/transactions/?limit=50";
+                // Filter on the server before limiting, so recent dispatches cannot hide WIP rows.
+                String endpoint = getBaseUrl() + "/api/transactions/?status=wip&limit=200";
                 HttpResult result = sendHttpRequest("GET", endpoint, null);
 
                 mainHandler.post(() -> {
@@ -1237,7 +1239,13 @@ public class MainActivity extends Activity {
                                 String wo = obj.optString("work_order_no", obj.optString("workOrderNo", ""));
                                 String dev = obj.optString("device_name", obj.optString("deviceName", obj.optString("scanner_device", obj.optString("device_id", getDeviceName()))));
                                 String status = obj.optString("status", obj.optString("status_id", "WIP"));
-                                String created = obj.optString("created_on", obj.optString("createdOn", obj.optString("timestamp", "")));
+                                String created = obj.optString("product_validation_timestamp", "");
+                                if (created.isEmpty() || created.equalsIgnoreCase("null")) {
+                                    created = obj.optString("productValidationTimestamp", "");
+                                }
+                                if (created.isEmpty() || created.equalsIgnoreCase("null")) {
+                                    created = obj.optString("created_on", obj.optString("createdOn", obj.optString("timestamp", "")));
+                                }
 
                                 String part = obj.optString("part_number", obj.optString("partNumber", ""));
                                 if (part.isEmpty() || part.equalsIgnoreCase("FG-") || part.equalsIgnoreCase("FG-" + mat)) {
@@ -1341,14 +1349,21 @@ public class MainActivity extends Activity {
 
                         } catch (Exception e) {
                             Log.e(TAG, "JSON parsing error for transactions", e);
+                            if (tvRecCountBadge != null) tvRecCountBadge.setText("Invalid WIP server response");
                         }
                     } else {
                         Log.w(TAG, "Transactions fetch returned HTTP " + result.statusCode);
+                        if (tvRecCountBadge != null) {
+                            tvRecCountBadge.setText("WIP load failed (HTTP " + result.statusCode + ")");
+                        }
                     }
                 });
 
             } catch (Exception e) {
                 Log.w(TAG, "Failed to reach server for transactions: " + e.getMessage());
+                mainHandler.post(() -> {
+                    if (tvRecCountBadge != null) tvRecCountBadge.setText("WIP server connection failed");
+                });
             }
         });
     }
@@ -1700,14 +1715,32 @@ public class MainActivity extends Activity {
             return dateFormat.format(new Date());
         }
         try {
-            String clean = isoTime.replace("T", " ");
-            if (clean.length() >= 19) {
-                clean = clean.substring(0, 19);
+            String normalized = isoTime.trim().replace(' ', 'T');
+            normalized = normalized.replaceFirst("\\.(\\d{3})\\d+", ".$1");
+            normalized = normalized.replaceFirst("(?i)Z$", "+0000");
+            normalized = normalized.replaceFirst("([+-]\\d{2}):(\\d{2})$", "$1$2");
+
+            String[] patterns = normalized.matches(".*[+-]\\d{4}$")
+                ? new String[] {"yyyy-MM-dd'T'HH:mm:ss.SSSZ", "yyyy-MM-dd'T'HH:mm:ssZ"}
+                : new String[] {"yyyy-MM-dd'T'HH:mm:ss.SSS", "yyyy-MM-dd'T'HH:mm:ss"};
+            for (String pattern : patterns) {
+                try {
+                    SimpleDateFormat parser = new SimpleDateFormat(pattern, Locale.US);
+                    parser.setLenient(false);
+                    parser.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    Date parsed = parser.parse(normalized);
+                    if (parsed != null) {
+                        dateFormat.setTimeZone(TimeZone.getDefault());
+                        return dateFormat.format(parsed);
+                    }
+                } catch (Exception ignored) {
+                    // Try the next ISO variant.
+                }
             }
-            return clean + " (IST)";
         } catch (Exception e) {
-            return isoTime;
+            Log.w(TAG, "Could not parse transaction timestamp: " + isoTime, e);
         }
+        return isoTime;
     }
 
     private void appendLog(String msg) {
@@ -2563,20 +2596,6 @@ public class MainActivity extends Activity {
             }
         } catch (Exception ignored) {}
 
-        if (mTransactionRecords.isEmpty()) {
-            mTransactionRecords.add(new TransactionRecord(
-                "TXN-20260918-0001",
-                "18 Sep 2026, 18:52:14 (IST)",
-                "WFFG-8823-9901",
-                "E28011606000021A58",
-                -44.0,
-                "1002559825",
-                "Wakefit Orthopedic Memory Foam Mattress",
-                "WO-2026-08912",
-                getDeviceId(),
-                "WIP"
-            ));
-        }
     }
 
     // =========================================================================
