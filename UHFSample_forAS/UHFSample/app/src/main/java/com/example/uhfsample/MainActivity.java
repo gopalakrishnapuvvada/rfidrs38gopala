@@ -705,7 +705,12 @@ public class MainActivity extends Activity {
                 HttpResult res = sendHttpRequest("GET", endpoint, null);
                 if (res.statusCode == 200) {
                     JSONObject obj = new JSONObject(res.body);
-                    mainHandler.post(() -> populateFgMasterDataFromJsonObject(obj));
+                    mainHandler.post(() -> {
+                        // A later scan may have changed the selected material while this request ran.
+                        if (cleanCode.equalsIgnoreCase(mValMaterialCode)) {
+                            populateFgMasterDataFromJsonObject(obj);
+                        }
+                    });
                 }
             } catch (Exception e) {
                 Log.w(TAG, "Master data lookup error: " + e.getMessage());
@@ -713,14 +718,27 @@ public class MainActivity extends Activity {
         });
     }
 
+    private static String firstMasterValue(JSONObject item, String... keys) {
+        for (String key : keys) {
+            if (!item.isNull(key)) {
+                String value = item.optString(key, "").trim();
+                if (!value.isEmpty() && !value.equalsIgnoreCase("null")) return value;
+            }
+        }
+        return "";
+    }
+
     private void populateFgMasterDataFromJsonObject(JSONObject item) {
         if (item == null) return;
-        mValProductName = item.optString("productDescription", item.optString("productName", item.optString("model", mValProductName)));
-        mValModel = item.optString("model", "Dual Comfort Foam");
-        mValPartNumber = item.optString("partNumber", "FG-" + mValMaterialCode);
-        mValCategory = item.optString("category", "Mattress");
-        mValColour = item.optString("colour", item.optString("color", "Red"));
-        mValFgStatus = item.optString("status", item.optString("status_id", item.optString("status_name", "Active")));
+        String productName = firstMasterValue(item, "productDescription", "product_description", "productName", "model");
+        mValProductName = productName.isEmpty() ? "FG Item (" + mValMaterialCode + ")" : productName;
+        mValModel = firstMasterValue(item, "model");
+        mValPartNumber = firstMasterValue(item, "partNumber", "part_number");
+        mValCategory = firstMasterValue(item, "category", "categoryId", "category_id");
+        mValColour = firstMasterValue(item, "color", "colour");
+        String masterStatus = firstMasterValue(item, "status", "statusId", "status_id", "status_name");
+        mValFgStatus = masterStatus.replaceAll("[\\s_-]+", "").equalsIgnoreCase("onhold") ? "On hold" : masterStatus;
+        if (mValFgStatus.isEmpty()) mValFgStatus = "Active";
         mValPackageType = item.optString("packageType", "Rolled Vacuum Box");
 
         JSONObject dim = item.optJSONObject("dimensions");
@@ -740,11 +758,12 @@ public class MainActivity extends Activity {
         // Images array extraction
         mValFgImages.clear();
         JSONArray imgsArr = item.optJSONArray("fgImage");
+        if (imgsArr == null) imgsArr = item.optJSONArray("fg_image");
         if (imgsArr == null) imgsArr = item.optJSONArray("images");
         if (imgsArr != null) {
             for (int i = 0; i < imgsArr.length(); i++) {
                 String u = imgsArr.optString(i, "").trim();
-                if (!u.isEmpty()) mValFgImages.add(u);
+                if (!u.isEmpty() && !mValFgImages.contains(u)) mValFgImages.add(u);
             }
         }
         if (mValFgImages.isEmpty()) {
@@ -755,17 +774,17 @@ public class MainActivity extends Activity {
 
         updateValidationUiState();
 
-        boolean isInactive = mValFgStatus != null && !mValFgStatus.trim().equalsIgnoreCase("active");
-        if (isInactive) {
-            appendLog("[MATERIAL STATUS] ⚠️ Scanned Material Code is INACTIVE: " + mValMaterialCode);
-            showInactiveMaterialDialog(mValMaterialCode);
+        boolean isUnavailable = !mValFgStatus.equalsIgnoreCase("active");
+        if (isUnavailable) {
+            appendLog("[MATERIAL STATUS] Scanned Material Code is " + mValFgStatus + ": " + mValMaterialCode);
+            showUnavailableMaterialDialog(mValMaterialCode);
         }
     }
 
-    private void showInactiveMaterialDialog(final String materialCode) {
+    private void showUnavailableMaterialDialog(final String materialCode) {
         new AlertDialog.Builder(MainActivity.this)
-            .setTitle("⚠️ Inactive Material Code")
-            .setMessage("The scanned material code '" + materialCode + "' is inactive.\n\nTransactions cannot be committed for inactive material codes.")
+            .setTitle("Material " + mValFgStatus)
+            .setMessage("The scanned material code '" + materialCode + "' is " + mValFgStatus + ".\n\nTransactions can only be committed for active material codes.")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
             .setCancelable(false)
@@ -891,7 +910,7 @@ public class MainActivity extends Activity {
         if (mValMaterialCaptured) {
             boolean isInactive = mValFgStatus != null && !mValFgStatus.trim().equalsIgnoreCase("active");
             if (isInactive) {
-                tvValBadgeMaterial.setText("✕ MATERIAL INACTIVE");
+                tvValBadgeMaterial.setText("✕ MATERIAL " + mValFgStatus.toUpperCase(Locale.US));
                 tvValBadgeMaterial.setTextColor(getResources().getColor(R.color.brand_red));
                 tvValBadgeMaterial.setBackgroundResource(R.drawable.bg_badge_awaiting);
             } else {
@@ -970,7 +989,7 @@ public class MainActivity extends Activity {
         // Commit Button State: Requires all 3 items AND at least 1 inspection photo AND active material code
         boolean isMaterialActive = mValFgStatus == null || mValFgStatus.trim().equalsIgnoreCase("active");
         if (mValMaterialCaptured && !isMaterialActive) {
-            btnValQueue.setText("Commit Blocked (Material Inactive)");
+            btnValQueue.setText("Commit Blocked (Material " + mValFgStatus + ")");
             btnValQueue.setEnabled(false);
             btnValQueue.setBackgroundResource(R.drawable.bg_btn_queue_disabled);
         } else if (count == 3 && photoCount >= 1) {
@@ -1043,8 +1062,8 @@ public class MainActivity extends Activity {
 
         boolean isMaterialActive = mValFgStatus == null || mValFgStatus.trim().equalsIgnoreCase("active");
         if (mValMaterialCaptured && !isMaterialActive) {
-            Toast.makeText(this, "Cannot commit: Material code '" + mValMaterialCode + "' is inactive!", Toast.LENGTH_LONG).show();
-            showInactiveMaterialDialog(mValMaterialCode);
+            Toast.makeText(this, "Cannot commit: Material code '" + mValMaterialCode + "' is " + mValFgStatus + ".", Toast.LENGTH_LONG).show();
+            showUnavailableMaterialDialog(mValMaterialCode);
             return;
         }
 
@@ -1172,7 +1191,9 @@ public class MainActivity extends Activity {
                             // Master Data Item Matching
                             if (res.has("matchedFgItem") && !res.isNull("matchedFgItem")) {
                                 JSONObject item = res.getJSONObject("matchedFgItem");
-                                populateFgMasterDataFromJsonObject(item);
+                                if (!mat.isEmpty() && mat.equalsIgnoreCase(mValMaterialCode)) {
+                                    populateFgMasterDataFromJsonObject(item);
+                                }
                             }
 
                             // Duplicate Checking
